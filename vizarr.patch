@@ -1,0 +1,110 @@
+diff --git a/src/index.tsx b/src/index.tsx
+index e7f946d..c32b719 100644
+--- a/src/index.tsx
++++ b/src/index.tsx
+@@ -1,6 +1,6 @@
+ import * as React from 'react';
+ import ReactDOM from 'react-dom/client';
+-import { Provider, atom } from 'jotai';
++import { Provider, atom, useAtomValue } from 'jotai';
+ import { useSetAtom } from 'jotai';
+ import { ThemeProvider } from '@material-ui/styles';
+ import mitt from 'mitt';
+@@ -8,7 +8,7 @@ import mitt from 'mitt';
+ import Menu from './components/Menu';
+ import Viewer from './components/Viewer';
+ import './codecs/register';
+-import { addImageAtom, ImageLayerConfig, ViewState, atomWithEffect } from './state';
++import { addImageAtom, ImageLayerConfig, ViewState, atomWithEffect, sourceErrorAtom } from './state';
+ import theme from './theme';
+ 
+ export { version } from '../package.json';
+@@ -47,6 +47,7 @@ export function createViewer(element: HTMLElement): Promise<VizarrViewer> {
+   let { promise, resolve } = defer<VizarrViewer>();
+ 
+   function App() {
++    const sourceError = useAtomValue(sourceErrorAtom);
+     const addImage = useSetAtom(addImageAtom);
+     const setViewState = useSetAtom(viewStateAtom);
+     React.useImperativeHandle(ref, () => ({ addImage, setViewState, on: emitter.on }), []);
+@@ -57,8 +58,33 @@ export function createViewer(element: HTMLElement): Promise<VizarrViewer> {
+     }, []);
+     return (
+       <>
+-        <Menu />
+-        <Viewer viewStateAtom={viewStateAtom} />
++      {sourceError === null &&
++        <>
++          <Menu />
++          <Viewer viewStateAtom={viewStateAtom} />
++        </>
++      }
++      {sourceError !== null &&
++        <div style={{
++          position: 'fixed',
++          top: 0,
++          bottom: 0,
++          left: 0,
++          right: 0,
++          color: '#fff',
++          display: 'flex',
++          alignItems: 'center',
++          textAlign: 'center',
++          justifyContent: 'center',
++          fontSize: '120%'
++        }}>
++          <p>{
++            sourceError.message === '403' || sourceError.message === '401' ? 
++            'You are not authorized to access this resource' :
++            `Error: server replied with "${sourceError.message}" when loading the resource`
++          }</p>
++        </div>
++      }
+       </>
+     );
+   }
+diff --git a/src/state.ts b/src/state.ts
+index a8b1a16..6ae189e 100644
+--- a/src/state.ts
++++ b/src/state.ts
+@@ -3,7 +3,7 @@ import type { Matrix4 } from 'math.gl';
+ import type { PrimitiveAtom, WritableAtom } from 'jotai';
+ import { atom } from 'jotai';
+ import { atomFamily, splitAtom, waitForAll } from 'jotai/utils';
+-import type { ZarrArray } from 'zarr';
++import { HTTPError, ZarrArray } from 'zarr';
+ 
+ import type { default as GridLayer, GridLayerProps, GridLoader } from './gridLayer';
+ import { initLayerStateFromSource } from './io';
+@@ -122,17 +122,26 @@ export type ControllerProps<T = {}> = {
+   layerAtom: PrimitiveAtom<WithId<LayerState>>;
+ } & T;
+ 
++export const sourceErrorAtom = atom<HTTPError | null>(null);
++
+ export const sourceInfoAtom = atom<WithId<SourceData>[]>([]);
+ 
+ export const addImageAtom = atom(null, async (get, set, config: ImageLayerConfig) => {
+   const { createSourceData } = await import('./io');
+   const id = Math.random().toString(36).slice(2);
+-  const sourceData = await createSourceData(config);
+-  const prevSourceInfo = get(sourceInfoAtom);
+-  if (!sourceData.name) {
+-    sourceData.name = `image_${Object.keys(prevSourceInfo).length}`;
++  try {
++    const sourceData = await createSourceData(config);
++    const prevSourceInfo = get(sourceInfoAtom);
++    if (!sourceData.name) {
++      sourceData.name = `image_${Object.keys(prevSourceInfo).length}`;
++    }
++    set(sourceInfoAtom, [...prevSourceInfo, { id, ...sourceData }]);
++  } catch (err) {
++    console.log('error opening source data', err);
++    if (err instanceof HTTPError) {
++      set(sourceErrorAtom, err);
++    }
+   }
+-  set(sourceInfoAtom, [...prevSourceInfo, { id, ...sourceData }]);
+ });
+ 
+ export const sourceInfoAtomAtoms = splitAtom(sourceInfoAtom);
