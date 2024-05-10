@@ -60,3 +60,67 @@ Then run `npm run start` to start the project. The server will start on port 300
 Login on fractal-web and then on another tab open the following URL to display the example dataset:
 
 http://localhost:3000/?source=http://localhost:3000/users/admin/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0
+
+
+# Detailed instructions
+
+Preliminary steps:
+
+1. You need to have an active instance of `fractal-server` and an active instance of `fractal-web`.
+2. You need to log-in to `fractal-web` from the browser.
+3. Get and install the `fractal-data` application
+
+```bash
+git clone git@github.com:fractal-analytics-platform/fractal-data.git
+cd fractal-data
+npm install
+```
+
+4. Get/patch/install/patch/build `vizarr`
+
+> Note: for simplicity, we assume that `fractal-data` and `vizarr` are subfolders of the same folder:
+
+```bash
+git clone git@github.com:hms-dbmi/vizarr.git
+cd vizarr
+git checkout ca1b1c5693f3cdc355a1e2f2f6b7bb57ba62d4ed
+git apply ../fractal-data/vizarr.patch
+npm install
+cat node_modules/zarr/core.mjs | sed '3188 i \        if (value.status !== 200 && value.status !== 404) {throw new HTTPError(String(value.status));}' > node_modules/zarr/core.mjs.tmp
+mv node_modules/zarr/core.mjs.tmp node_modules/zarr/core.mjs
+npm run build
+```
+
+> NOTE that we are applying two patches:
+> * A git patch to `vizarr` itself, defined in `fractal-data/vizarr.patch`.
+> * A patch to `zarr.js` (as in the PR as in https://github.com/gzuidhof/zarr.js/pull/151), which makes lines 3187-3189 of `node_modules/zarr/core.mjs` look like:
+> ```js
+>         const value = await fetch(url, { ...this.fetchOptions, method });^M
+>         if (value.status !== 200 && value.status !== 404) {throw new HTTPError(String(value.status));}
+>         return value.status === 200;^M
+> ```
+
+5. Create and fill data folder for `fractal-data` (from the `fractal-data` main folder):
+
+```bash
+mkdir users
+mkdir users/admin
+cd users/admin/
+wget https://zenodo.org/records/10424292/files/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr.zip?download=1
+unzip 20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr.zip?download=1
+```
+
+6. Set up environment variables for `fractal-data`.
+From the `fractal-data` main folder, copy `.env.example` into `.env`, and modify `.env` so that it looks like
+```
+FRACTAL_SERVER_URL=http://localhost:8000
+USERS_DATA_BASE_PATH=/somewhere/fractal-data/users/
+VIZARR_STATIC_FILES_PATH=/somewhere/vizarr/out/
+```
+
+7. Startup `fractal-data`
+```bash
+npm start
+```
+
+8. Look at the zarr from the browser, at http://localhost:3000/?source=http://localhost:3000/users/admin/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0
