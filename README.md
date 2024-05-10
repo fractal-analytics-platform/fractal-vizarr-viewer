@@ -64,10 +64,8 @@ http://localhost:3000/?source=http://localhost:3000/users/admin/20200812-Cardiom
 
 # Detailed instructions
 
-Preliminary steps:
-
 1. You need to have an active instance of `fractal-server` and an active instance of `fractal-web`.
-2. You need to log-in to `fractal-web` from the browser.
+2. You need to log-in to `fractal-web` from the browser, as the `admin@fractal.xy` user.
 3. Get and install the `fractal-data` application
 
 ```bash
