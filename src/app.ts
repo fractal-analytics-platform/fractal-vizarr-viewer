@@ -39,21 +39,22 @@ app.use('/users', async function (req, res) {
 // Returns the requested file path if authorized, undefined otherwise
 async function getAuthorizedPath(req: Request): Promise<string | undefined> {
   const requestPath = req.path;
-  const cookie = req.get('Cookie');
-  const username = await getUserFromCookie(cookie);
-  // Check if the first segment of the requested path matches with the username
-  const matches = requestPath.match(/^\/([^/]*)\/.*$/);
-  if (username && matches && matches.length > 1 && matches[1] === username) {
-    const userFolder = path.join(USERS_DATA_BASE_PATH, username);
-    const completePath = path.join(USERS_DATA_BASE_PATH, requestPath).normalize();
-    // Ensure that the selected path is a subfolder of the user folder
-    if (path.relative(userFolder, completePath).includes('..')) {
-      return undefined;
-    }
-    console.log(completePath);
-    return completePath;
-  }
-  return undefined;
+  return requestPath;
+  // const cookie = req.get('Cookie');
+  // const username = await getUserFromCookie(cookie);
+  // // Check if the first segment of the requested path matches with the username
+  // const matches = requestPath.match(/^\/([^/]*)\/.*$/);
+  // if (username && matches && matches.length > 1 && matches[1] === username) {
+  //   const userFolder = path.join(USERS_DATA_BASE_PATH, username);
+  //   const completePath = path.join(USERS_DATA_BASE_PATH, requestPath).normalize();
+  //   // Ensure that the selected path is a subfolder of the user folder
+  //   if (path.relative(userFolder, completePath).includes('..')) {
+  //     return undefined;
+  //   }
+  //   console.log(completePath);
+  //   return completePath;
+  // }
+  // return undefined;
 }
 
 async function getUserFromCookie(cookie: string): Promise<string | undefined> {
