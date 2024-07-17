@@ -7,7 +7,7 @@ This repository contains a simple server application made using [Express](https:
 The application has 2 endpoints:
 
 * the root (`/`), that serves [vizarr](https://github.com/hms-dbmi/vizarr) static files;
-* the endpoint `/users/{username}/{path-to-zarr}`, that serves the content of Zarr files checking user authorization.
+* the endpoint `/data/{path-to-zarr}`, that serves the content of Zarr files checking user authorization (currently only superusers can access the service).
 
 ## How it works
 
@@ -59,7 +59,7 @@ Then run `npm run start` to start the project. The server will start on port 300
 
 Login on fractal-web and then on another tab open the following URL to display the example dataset:
 
-http://localhost:3000/?source=http://localhost:3000/users/admin/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0
+http://localhost:3000/?source=http://localhost:3000/data/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0
 
 
 # Detailed instructions
@@ -101,9 +101,8 @@ npm run build
 5. Create and fill data folder for `fractal-data` (from the `fractal-data` main folder):
 
 ```bash
-mkdir users
-mkdir users/admin
-cd users/admin/
+mkdir zarr-files
+cd zarr-files
 wget https://zenodo.org/records/10424292/files/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr.zip?download=1
 unzip 20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr.zip?download=1
 ```
@@ -112,7 +111,7 @@ unzip 20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr.zip?download=1
 From the `fractal-data` main folder, copy `.env.example` into `.env`, and modify `.env` so that it looks like
 ```
 FRACTAL_SERVER_URL=http://localhost:8000
-USERS_DATA_BASE_PATH=/somewhere/fractal-data/users/
+ZARR_DATA_BASE_PATH=/somewhere/fractal-data/zarr-files/
 VIZARR_STATIC_FILES_PATH=/somewhere/vizarr/out/
 ```
 
@@ -121,4 +120,4 @@ VIZARR_STATIC_FILES_PATH=/somewhere/vizarr/out/
 npm start
 ```
 
-8. Look at the zarr from the browser, at http://localhost:3000/?source=http://localhost:3000/users/admin/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0
+8. Look at the zarr from the browser, at http://localhost:3000/?source=http://localhost:3000/data/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0
