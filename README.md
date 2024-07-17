@@ -101,8 +101,8 @@ npm run build
 5. Create and fill data folder for `fractal-data` (from the `fractal-data` main folder):
 
 ```bash
-mkdir data
-cd data
+mkdir zarr-files
+cd zarr-files
 wget https://zenodo.org/records/10424292/files/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr.zip?download=1
 unzip 20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr.zip?download=1
 ```
