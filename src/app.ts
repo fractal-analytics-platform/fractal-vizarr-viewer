@@ -8,10 +8,10 @@ import * as dotenv from 'dotenv'
 dotenv.config();
 
 const FRACTAL_SERVER_URL = process.env.FRACTAL_SERVER_URL;
-const USERS_DATA_BASE_PATH = process.env.USERS_DATA_BASE_PATH;
+const ZARR_DATA_BASE_PATH = process.env.ZARR_DATA_BASE_PATH;
 const VIZARR_STATIC_FILES_PATH = process.env.VIZARR_STATIC_FILES_PATH;
 
-if (!FRACTAL_SERVER_URL || !USERS_DATA_BASE_PATH || !VIZARR_STATIC_FILES_PATH) {
+if (!FRACTAL_SERVER_URL || !ZARR_DATA_BASE_PATH || !VIZARR_STATIC_FILES_PATH) {
   console.error('Missing environment variable. Check the .env file');
   process.exit(1);
 }
@@ -21,50 +21,52 @@ const app = express();
 const port = 3000;
 
 // Endpoint serving users files
-app.use('/users', async function (req, res) {
-  const authorizedPath = await getAuthorizedPath(req);
-  if (!authorizedPath) {
-    return res.status(403).send('Forbidden').end();
+app.use('/data', async function (req, res) {
+  try {
+    const authorizedPath = await getAuthorizedPath(req);
+    if (!authorizedPath) {
+      return res.status(403).send('Forbidden').end();
+    }
+    if (!fs.existsSync(authorizedPath)) {
+      return res.status(404).send('Not Found').end();
+    }
+    if (fs.lstatSync(authorizedPath).isDirectory()) {
+      return res.status(400).send('Is directory').end();
+    }
+    const stream = fs.createReadStream(authorizedPath);
+    stream.pipe(res);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send('Internal Server Error').end();
   }
-  if (!fs.existsSync(authorizedPath)) {
-    return res.status(404).send('Not Found').end();
-  }
-  if (fs.lstatSync(authorizedPath).isDirectory()) {
-    return res.status(400).send('Is directory').end();
-  }
-  const stream = fs.createReadStream(authorizedPath);
-  stream.pipe(res);
 });
 
 // Returns the requested file path if authorized, undefined otherwise
 async function getAuthorizedPath(req: Request): Promise<string | undefined> {
-  const requestPath = req.path;
+  const requestPath = req.path.normalize();
   const cookie = req.get('Cookie');
-  const username = await getUserFromCookie(cookie);
-  // Check if the first segment of the requested path matches with the username
-  const matches = requestPath.match(/^\/([^/]*)\/.*$/);
-  if (username && matches && matches.length > 1 && matches[1] === username) {
-    const userFolder = path.join(USERS_DATA_BASE_PATH, username);
-    const completePath = path.join(USERS_DATA_BASE_PATH, requestPath).normalize();
-    // Ensure that the selected path is a subfolder of the user folder
-    if (path.relative(userFolder, completePath).includes('..')) {
-      return undefined;
-    }
-    console.log(completePath);
-    return completePath;
+  const user = await getUserFromCookie(cookie);
+  if (!user || !user.is_superuser) {
+    // Only superusers can access fractal-data
+    return undefined;
   }
-  return undefined;
+  const completePath = requestPath.startsWith(ZARR_DATA_BASE_PATH) ?
+    requestPath : path.join(ZARR_DATA_BASE_PATH, requestPath);
+  // Ensure that the selected path is a subfolder of the base data folder
+  if (path.relative(ZARR_DATA_BASE_PATH, completePath).includes('..')) {
+    return undefined;
+  }
+  return completePath;
 }
 
-async function getUserFromCookie(cookie: string): Promise<string | undefined> {
+async function getUserFromCookie(cookie: string): Promise<{ username: string, is_superuser: boolean } | undefined> {
   const response = await fetch(`${FRACTAL_SERVER_URL}/auth/current-user/`, {
     headers: {
       'Cookie': cookie
     }
   });
   if (response.ok) {
-    const { username } = await response.json();
-    return username;
+    return await response.json();
   }
   return undefined;
 }
