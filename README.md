@@ -69,7 +69,7 @@ http://localhost:3000/?source=http://localhost:3000/data/20200812-CardiomyocyteD
 3. Get and install the `fractal-data` application
 
 ```bash
-git clone git@github.com:fractal-analytics-platform/fractal-data.git
+git clone https://github.com/fractal-analytics-platform/fractal-data.git
 cd fractal-data
 npm install
 ```
@@ -79,7 +79,7 @@ npm install
 > Note: for simplicity, we assume that `fractal-data` and `vizarr` are subfolders of the same folder:
 
 ```bash
-git clone git@github.com:hms-dbmi/vizarr.git
+git clone https://github.com/hms-dbmi/vizarr.git
 cd vizarr
 git checkout ca1b1c5693f3cdc355a1e2f2f6b7bb57ba62d4ed
 git apply ../fractal-data/vizarr.patch
@@ -98,7 +98,7 @@ npm run build
 >         return value.status === 200;^M
 > ```
 
-5. Create and fill data folder for `fractal-data` (from the `fractal-data` main folder):
+5. Create and fill data folder for `fractal-data`:
 
 ```bash
 mkdir zarr-files
@@ -111,8 +111,9 @@ unzip 20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr.zip?download=1
 From the `fractal-data` main folder, copy `.env.example` into `.env`, and modify `.env` so that it looks like
 ```
 FRACTAL_SERVER_URL=http://localhost:8000
-ZARR_DATA_BASE_PATH=/somewhere/fractal-data/zarr-files/
+ZARR_DATA_BASE_PATH=/somewhere/zarr-files/
 VIZARR_STATIC_FILES_PATH=/somewhere/vizarr/out/
+BASE_PATH=/vizarr
 ```
 
 7. Startup `fractal-data`
@@ -120,4 +121,15 @@ VIZARR_STATIC_FILES_PATH=/somewhere/vizarr/out/
 npm start
 ```
 
-8. Look at the zarr from the browser, at http://localhost:3000/?source=http://localhost:3000/data/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0
+8. Look at the zarr from the browser, at http://localhost:3000/vizarr/?source=http://localhost:3000/vizarr/data/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0
+
+## Production setup
+
+Add an Apache configuration to expose fractal-data service on a given path of the public server. The specified location must have the same value set in fractal-data `BASE_PATH` environment variable (the default value is `/vizarr`).
+
+```
+<Location /vizarr>
+    ProxyPass http://127.0.0.1:3000/vizarr
+    ProxyPassReverse http://127.0.0.1:3000/vizarr
+</Location>
+```

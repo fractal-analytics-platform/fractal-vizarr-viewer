@@ -16,12 +16,17 @@ if (!FRACTAL_SERVER_URL || !ZARR_DATA_BASE_PATH || !VIZARR_STATIC_FILES_PATH) {
   process.exit(1);
 }
 
+let basePath = process.env.BASE_PATH || '/vizarr';
+if (!basePath.endsWith('/')) {
+  basePath += '/';
+}
+
 // Defining Express application
 const app = express();
 const port = 3000;
 
-// Endpoint serving users files
-app.use('/data', async function (req, res) {
+// Endpoint serving zarr files
+app.use(`${basePath}data`, async function (req, res) {
   try {
     const authorizedPath = await getAuthorizedPath(req);
     if (!authorizedPath) {
@@ -72,9 +77,9 @@ async function getUserFromCookie(cookie: string): Promise<{ username: string, is
 }
 
 // Serving Vizarr static files
-app.use('/', express.static(VIZARR_STATIC_FILES_PATH));
+app.use(`${basePath}`, express.static(VIZARR_STATIC_FILES_PATH));
 
 // Start server
 app.listen(port, () => {
-  return console.log(`fractal-data is listening at http://localhost:${port}`);
+  return console.log(`fractal-data is listening at http://localhost:${port}${basePath}`);
 });
