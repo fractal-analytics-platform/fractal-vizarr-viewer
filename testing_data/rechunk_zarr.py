@@ -8,4 +8,4 @@ for level in range(5):
     # Use 1x1x50x50 CZYX chunks
     new_array = da.rechunk(old_array, chunks=(1, 1, 50, 50))
     print(f"{new_array=}")
-    new_array.to_zarr(array_path, overwrite=True)
+    new_array.to_zarr(array_path, overwrite=True, dimension_separator="/")
