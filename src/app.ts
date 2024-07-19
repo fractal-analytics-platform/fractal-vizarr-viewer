@@ -11,8 +11,9 @@ dotenv.config();
 const FRACTAL_SERVER_URL = process.env.FRACTAL_SERVER_URL;
 const ZARR_DATA_BASE_PATH = process.env.ZARR_DATA_BASE_PATH;
 const VIZARR_STATIC_FILES_PATH = process.env.VIZARR_STATIC_FILES_PATH;
+const ALLOWED_USERS = process.env.ALLOWED_USERS;
 
-if (!FRACTAL_SERVER_URL || !ZARR_DATA_BASE_PATH || !VIZARR_STATIC_FILES_PATH) {
+if (!FRACTAL_SERVER_URL || !ZARR_DATA_BASE_PATH || !VIZARR_STATIC_FILES_PATH || !ALLOWED_USERS) {
   console.error('Missing environment variable. Check the .env file');
   process.exit(1);
 }
@@ -21,6 +22,14 @@ let basePath = process.env.BASE_PATH || '/vizarr';
 if (!basePath.endsWith('/')) {
   basePath += '/';
 }
+
+if (!fs.existsSync(ALLOWED_USERS)) {
+  console.error(`Allowed users file not found: ${ALLOWED_USERS}`);
+  process.exit(1);
+}
+
+const allowedUsersData = fs.readFileSync(ALLOWED_USERS).toString();
+const allowedUsers = allowedUsersData.split('\n').map(n => n.trim()).filter(n => !!n);
 
 // Defining Express application
 const app = express();
@@ -54,8 +63,8 @@ async function getAuthorizedPath(req: Request): Promise<string | undefined> {
   const requestPath = req.path.normalize();
   const cookie = req.get('Cookie');
   const user = await getUserFromCookie(cookie);
-  if (!user || !user.is_superuser) {
-    // Only superusers can access fractal-data
+  if (!user || !allowedUsers.includes(user.email)) {
+    // Only allowed users can access fractal-data
     return undefined;
   }
   const completePath = requestPath.startsWith(ZARR_DATA_BASE_PATH) ?
@@ -67,7 +76,7 @@ async function getAuthorizedPath(req: Request): Promise<string | undefined> {
   return completePath;
 }
 
-async function getUserFromCookie(cookie: string): Promise<{ username: string, is_superuser: boolean } | undefined> {
+async function getUserFromCookie(cookie: string): Promise<{ email: string } | undefined> {
   if (cookiesCache.has(cookie)) {
     return JSON.parse(cookiesCache.get(cookie));
   }
