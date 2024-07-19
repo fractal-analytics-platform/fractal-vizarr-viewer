@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv'
+import NodeCache from 'node-cache';
 
 // Loading envirnment variables
 dotenv.config();
@@ -24,6 +25,8 @@ if (!basePath.endsWith('/')) {
 // Defining Express application
 const app = express();
 const port = 3000;
+
+const cookiesCache = new NodeCache({ stdTTL: 60 });
 
 // Endpoint serving zarr files
 app.use(`${basePath}data`, async function (req, res) {
@@ -65,13 +68,18 @@ async function getAuthorizedPath(req: Request): Promise<string | undefined> {
 }
 
 async function getUserFromCookie(cookie: string): Promise<{ username: string, is_superuser: boolean } | undefined> {
+  if (cookiesCache.has(cookie)) {
+    return JSON.parse(cookiesCache.get(cookie));
+  }
   const response = await fetch(`${FRACTAL_SERVER_URL}/auth/current-user/`, {
     headers: {
       'Cookie': cookie
     }
   });
   if (response.ok) {
-    return await response.json();
+    const user = await response.json();
+    cookiesCache.set(cookie, JSON.stringify(user));
+    return user;
   }
   return undefined;
 }
