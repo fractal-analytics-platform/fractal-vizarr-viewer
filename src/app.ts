@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv'
-import NodeCache from 'node-cache';
+import { caching } from 'cache-manager';
 
 // Loading envirnment variables
 dotenv.config();
@@ -38,7 +38,9 @@ const allowedUsers = allowedUsersData.split('\n').map(n => n.trim()).filter(n =>
 const app = express();
 const port = PORT;
 
-const cookiesCache = new NodeCache({ stdTTL: CACHE_EXPIRATION_TIME });
+const cookiesCache = await caching('memory', {
+  ttl: CACHE_EXPIRATION_TIME * 1000 // milliseconds
+});
 
 // Endpoint serving zarr files
 app.use(`${basePath}data`, async function (req, res) {
@@ -65,6 +67,9 @@ app.use(`${basePath}data`, async function (req, res) {
 async function getAuthorizedPath(req: Request): Promise<string | undefined> {
   const requestPath = req.path.normalize();
   const cookie = req.get('Cookie');
+  if (!cookie) {
+    return undefined;
+  }
   const user = await getUserFromCookie(cookie);
   if (!user || !allowedUsers.includes(user.email)) {
     // Only allowed users can access fractal-data
@@ -79,21 +84,36 @@ async function getAuthorizedPath(req: Request): Promise<string | undefined> {
   return completePath;
 }
 
+// Track the cookies for which we are retrieving the user info from fractal-server
+// Used to avoid querying the cache while the fetch call is in progress
+let loadingCookies: string[] = [];
+
 async function getUserFromCookie(cookie: string): Promise<{ email: string } | undefined> {
-  if (cookiesCache.has(cookie)) {
-    return JSON.parse(cookiesCache.get(cookie));
+  while (loadingCookies.includes(cookie)) {
+    // a fetch call for this cookie is in progress; wait for its completion
+    await new Promise(r => setTimeout(r));
   }
-  const response = await fetch(`${FRACTAL_SERVER_URL}/auth/current-user/`, {
-    headers: {
-      'Cookie': cookie
+  loadingCookies.push(cookie);
+  let user = undefined;
+  try {
+    const value: string = await cookiesCache.get(cookie);
+    if (value) {
+      user = JSON.parse(value);
+    } else {
+      const response = await fetch(`${FRACTAL_SERVER_URL}/auth/current-user/`, {
+        headers: {
+          'Cookie': cookie
+        }
+      });
+      if (response.ok) {
+        user = await response.json();
+        cookiesCache.set(cookie, JSON.stringify(user));
+      }
     }
-  });
-  if (response.ok) {
-    const user = await response.json();
-    cookiesCache.set(cookie, JSON.stringify(user));
-    return user;
+  } finally {
+    loadingCookies = loadingCookies.filter(c => c !== cookie);
   }
-  return undefined;
+  return user;
 }
 
 // Serving Vizarr static files
