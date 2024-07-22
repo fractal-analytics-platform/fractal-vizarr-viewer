@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv'
 import { caching } from 'cache-manager';
+// Needed for node 16
+import fetch from 'node-fetch';
 
 // Loading envirnment variables
 dotenv.config();
