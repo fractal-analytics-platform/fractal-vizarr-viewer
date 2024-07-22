@@ -110,10 +110,12 @@ unzip 20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr.zip?download=1
 6. Set up environment variables for `fractal-data`.
 From the `fractal-data` main folder, copy `.env.example` into `.env`, and modify `.env` so that it looks like
 ```
+PORT=3000
 FRACTAL_SERVER_URL=http://localhost:8000
 ZARR_DATA_BASE_PATH=/somewhere/zarr-files/
 VIZARR_STATIC_FILES_PATH=/somewhere/vizarr/out/
 BASE_PATH=/vizarr
+CACHE_EXPIRATION_TIME=60
 ```
 
 7. Startup `fractal-data`
@@ -122,6 +124,15 @@ npm start
 ```
 
 8. Look at the zarr from the browser, at http://localhost:3000/vizarr/?source=http://localhost:3000/vizarr/data/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0
+
+## Environment variables
+
+* `PORT`: the port where fractal-data app is served;
+* `FRACTAL_SERVER_URL`: the base URL of fractal-server;
+* `ZARR_DATA_BASE_PATH`: path to Zarr files served by fractal-data; the app reads files only in this directory;
+* `VIZARR_STATIC_FILES_PATH`: path to the files generated running `npm run build` in vizarr source folder;
+* `BASE_PATH`: base path of fractal-data application;
+* `CACHE_EXPIRATION_TIME`: cookie cache TTL in seconds; when user info is retrieved from a cookie calling the current user endpoint on fractal-server the information is cached for the specified amount of seconds, to reduce the number of calls to fractal-server;
 
 ## Production setup
 

@@ -8,10 +8,13 @@ import NodeCache from 'node-cache';
 // Loading envirnment variables
 dotenv.config();
 
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const FRACTAL_SERVER_URL = process.env.FRACTAL_SERVER_URL;
 const ZARR_DATA_BASE_PATH = process.env.ZARR_DATA_BASE_PATH;
 const VIZARR_STATIC_FILES_PATH = process.env.VIZARR_STATIC_FILES_PATH;
 const ALLOWED_USERS = process.env.ALLOWED_USERS;
+// Cookie cache TTL in seconds
+const CACHE_EXPIRATION_TIME = process.env.CACHE_EXPIRATION_TIME ? parseInt(process.env.CACHE_EXPIRATION_TIME) : 60;
 
 if (!FRACTAL_SERVER_URL || !ZARR_DATA_BASE_PATH || !VIZARR_STATIC_FILES_PATH || !ALLOWED_USERS) {
   console.error('Missing environment variable. Check the .env file');
@@ -33,9 +36,9 @@ const allowedUsers = allowedUsersData.split('\n').map(n => n.trim()).filter(n =>
 
 // Defining Express application
 const app = express();
-const port = 3000;
+const port = PORT;
 
-const cookiesCache = new NodeCache({ stdTTL: 60 });
+const cookiesCache = new NodeCache({ stdTTL: CACHE_EXPIRATION_TIME });
 
 // Endpoint serving zarr files
 app.use(`${basePath}data`, async function (req, res) {
