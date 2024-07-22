@@ -9,6 +9,7 @@
     "start": "tsc && node dist/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -19,7 +20,9 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "cache-manager": "^5.7.3",
     "dotenv": "^16.4.5",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2"
   }
 }
