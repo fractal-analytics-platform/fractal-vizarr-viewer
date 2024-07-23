@@ -122,6 +122,13 @@ async function getUserFromCookie(cookie: string): Promise<{ email: string } | un
 app.use(`${basePath}`, express.static(VIZARR_STATIC_FILES_PATH));
 
 // Start server
-app.listen(port, () => {
+const server = app.listen(port, () => {
   return console.log(`fractal-vizarr-viewer is listening at http://localhost:${port}${basePath}`);
 });
+
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGQUIT']) {
+  process.on(signal, (signal) => {
+    console.log(`Process received a ${signal} signal`);
+    server.close();
+  });
+}
