@@ -138,6 +138,37 @@ Add an Apache configuration to expose fractal-vizarr-viewer service on a given p
 </Location>
 ```
 
+Add a systemd unit file in `/etc/systemd/system/fractal-vizarr-viewer.service`:
+
+```
+[Unit]
+Description=Fractal Vizarr Viewer service
+After=syslog.target
+
+[Service]
+User=fractal
+Environment="PORT=3000"
+Environment="FRACTAL_SERVER_URL=https://fractal-server.example.com/"
+Environment="ZARR_DATA_BASE_PATH=/path/to/zarr-files"
+Environment="VIZARR_STATIC_FILES_PATH=/path/to/vizarr/dist"
+Environment="BASE_PATH=/vizarr"
+Environment="ALLOWED_USERS=/path/to/allowed-users.txt"
+Environment="CACHE_EXPIRATION_TIME=60"
+ExecStart=/path/to/node /path/to/fractal-vizarr-viewer/dist/app.js
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable the service and start it:
+
+```sh
+sudo systemctl enable fractal-vizarr-viewer
+sudo systemctl start fractal-vizarr-viewer
+```
+
 ## Docker setup
 
 Build the docker image:
