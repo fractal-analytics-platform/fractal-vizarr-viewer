@@ -76,27 +76,20 @@ npm install
 
 4. Get/patch/install/patch/build `vizarr`
 
+> Vizarr needs to be built using **pnpm**. To install it you can use `npm install -g pnpm`.
+
 > Note: for simplicity, we assume that `fractal-vizarr-viewer` and `vizarr` are subfolders of the same folder:
 
 ```bash
 git clone https://github.com/hms-dbmi/vizarr.git
 cd vizarr
-git checkout ca1b1c5693f3cdc355a1e2f2f6b7bb57ba62d4ed
-git apply ../fractal-data/vizarr.patch
-npm install
-cat node_modules/zarr/core.mjs | sed '3188 i \        if (value.status !== 200 && value.status !== 404) {throw new HTTPError(String(value.status));}' > node_modules/zarr/core.mjs.tmp
-mv node_modules/zarr/core.mjs.tmp node_modules/zarr/core.mjs
-npm run build
+git checkout 55845ffb658fa04ee2fb649a434c4c16c587233e
+git apply ../fractal-vizarr-viewer/vizarr.patch
+pnpm install
+pnpm run build
 ```
 
-> NOTE that we are applying two patches:
-> * A git patch to `vizarr` itself, defined in `fractal-data/vizarr.patch`.
-> * A patch to `zarr.js` (as in the PR as in https://github.com/gzuidhof/zarr.js/pull/151), which makes lines 3187-3189 of `node_modules/zarr/core.mjs` look like:
-> ```js
->         const value = await fetch(url, { ...this.fetchOptions, method });^M
->         if (value.status !== 200 && value.status !== 404) {throw new HTTPError(String(value.status));}
->         return value.status === 200;^M
-> ```
+The output is located in the `dist` folder.
 
 5. Create and fill data folder for `fractal-vizarr-viewer`:
 
