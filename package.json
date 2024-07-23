@@ -1,6 +1,6 @@
 {
-  "name": "fractal-data",
-  "version": "1.0.0",
+  "name": "fractal-vizarr-viewer",
+  "version": "0.1.0",
   "description": "",
   "main": "dist/app.js",
   "scripts": {

@@ -74,7 +74,7 @@ async function getAuthorizedPath(req: Request): Promise<string | undefined> {
   }
   const user = await getUserFromCookie(cookie);
   if (!user || !allowedUsers.includes(user.email)) {
-    // Only allowed users can access fractal-data
+    // Only allowed users can access fractal-vizarr-viewer
     return undefined;
   }
   const completePath = requestPath.startsWith(ZARR_DATA_BASE_PATH) ?
@@ -123,5 +123,5 @@ app.use(`${basePath}`, express.static(VIZARR_STATIC_FILES_PATH));
 
 // Start server
 app.listen(port, () => {
-  return console.log(`fractal-data is listening at http://localhost:${port}${basePath}`);
+  return console.log(`fractal-vizarr-viewer is listening at http://localhost:${port}${basePath}`);
 });
