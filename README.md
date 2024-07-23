@@ -137,3 +137,25 @@ Add an Apache configuration to expose fractal-vizarr-viewer service on a given p
     ProxyPassReverse http://127.0.0.1:3000/vizarr
 </Location>
 ```
+
+## Docker setup
+
+Build the docker image:
+
+```sh
+docker build . -t fractal-vizarr-viewer
+```
+
+The following command can be used to start the docker image for testing:
+
+```sh
+docker run --network host \
+  -v /path/to/allowed_users.txt:/allowed_users.txt \
+  -v /path/to/zarr-files:/zarr-files \
+  -e ZARR_DATA_BASE_PATH=/zarr-files \
+  -e FRACTAL_SERVER_URL=http://localhost:8000 \
+  -e ALLOWED_USERS=/allowed_users.txt \
+  fractal-vizarr-viewer
+```
+
+For production replace the `--network host` option with a proper published port `-p 3000:3000` and set `FRACTAL_SERVER_URL` as an URL using a public domain.
