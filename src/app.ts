@@ -68,15 +68,15 @@ app.use(`${basePath}data`, async function (req, res) {
 // Returns the requested file path if authorized, undefined otherwise
 async function getAuthorizedPath(req: Request): Promise<string | undefined> {
   const requestPath = req.path.normalize();
-  const cookie = req.get('Cookie');
-  if (!cookie) {
-    return undefined;
-  }
-  const user = await getUserFromCookie(cookie);
-  if (!user || !allowedUsers.includes(user.email)) {
-    // Only allowed users can access fractal-vizarr-viewer
-    return undefined;
-  }
+  // const cookie = req.get('Cookie');
+  // if (!cookie) {
+  //   return undefined;
+  // }
+  // const user = await getUserFromCookie(cookie);
+  // if (!user || !allowedUsers.includes(user.email)) {
+  //   // Only allowed users can access fractal-vizarr-viewer
+  //   return undefined;
+  // }
   const completePath = requestPath.startsWith(ZARR_DATA_BASE_PATH) ?
     requestPath : path.join(ZARR_DATA_BASE_PATH, requestPath);
   // Ensure that the selected path is a subfolder of the base data folder
@@ -88,35 +88,35 @@ async function getAuthorizedPath(req: Request): Promise<string | undefined> {
 
 // Track the cookies for which we are retrieving the user info from fractal-server
 // Used to avoid querying the cache while the fetch call is in progress
-let loadingCookies: string[] = [];
+// let loadingCookies: string[] = [];
 
-async function getUserFromCookie(cookie: string): Promise<{ email: string } | undefined> {
-  while (loadingCookies.includes(cookie)) {
-    // a fetch call for this cookie is in progress; wait for its completion
-    await new Promise(r => setTimeout(r));
-  }
-  loadingCookies.push(cookie);
-  let user = undefined;
-  try {
-    const value: string = await cookiesCache.get(cookie);
-    if (value) {
-      user = JSON.parse(value);
-    } else {
-      const response = await fetch(`${FRACTAL_SERVER_URL}/auth/current-user/`, {
-        headers: {
-          'Cookie': cookie
-        }
-      });
-      if (response.ok) {
-        user = await response.json();
-        cookiesCache.set(cookie, JSON.stringify(user));
-      }
-    }
-  } finally {
-    loadingCookies = loadingCookies.filter(c => c !== cookie);
-  }
-  return user;
-}
+// async function getUserFromCookie(cookie: string): Promise<{ email: string } | undefined> {
+//   while (loadingCookies.includes(cookie)) {
+//     // a fetch call for this cookie is in progress; wait for its completion
+//     await new Promise(r => setTimeout(r));
+//   }
+//   loadingCookies.push(cookie);
+//   let user = undefined;
+//   try {
+//     const value: string = await cookiesCache.get(cookie);
+//     if (value) {
+//       user = JSON.parse(value);
+//     } else {
+//       const response = await fetch(`${FRACTAL_SERVER_URL}/auth/current-user/`, {
+//         headers: {
+//           'Cookie': cookie
+//         }
+//       });
+//       if (response.ok) {
+//         user = await response.json();
+//         cookiesCache.set(cookie, JSON.stringify(user));
+//       }
+//     }
+//   } finally {
+//     loadingCookies = loadingCookies.filter(c => c !== cookie);
+//   }
+//   return user;
+// }
 
 // Serving Vizarr static files
 app.use(`${basePath}`, express.static(VIZARR_STATIC_FILES_PATH));
