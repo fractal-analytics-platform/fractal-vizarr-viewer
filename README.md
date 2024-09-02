@@ -59,7 +59,7 @@ Then run `npm run start` to start the project. The server will start on port 300
 
 Login on fractal-web and then on another tab open the following URL to display the example dataset:
 
-http://localhost:3000/?source=http://localhost:3000/data/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0
+http://localhost:3000/vizarr?source=http://localhost:3000/vizarr/data/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0
 
 
 # Detailed instructions
@@ -126,6 +126,9 @@ npm start
 * `VIZARR_STATIC_FILES_PATH`: path to the files generated running `npm run build` in vizarr source folder;
 * `BASE_PATH`: base path of fractal-vizarr-viewer application;
 * `CACHE_EXPIRATION_TIME`: cookie cache TTL in seconds; when user info is retrieved from a cookie calling the current user endpoint on fractal-server the information is cached for the specified amount of seconds, to reduce the number of calls to fractal-server;
+* `LOG_LEVEL_CONSOLE`: the log level of logs that will be written to the console; the default value is `info`;
+* `LOG_FILE`: the path of the file where logs will be written; by default is unset and no file will be created;
+* `LOG_LEVEL_FILE`: the log level of logs that will be written to the file; the default value is `info`;
 
 ## Production setup
 
@@ -154,6 +157,8 @@ Environment="VIZARR_STATIC_FILES_PATH=/path/to/vizarr/dist"
 Environment="BASE_PATH=/vizarr"
 Environment="ALLOWED_USERS=/path/to/allowed-users.txt"
 Environment="CACHE_EXPIRATION_TIME=60"
+Environment="LOG_FILE=/path/to/log"
+Environment="LOG_LEVEL_FILE=info"
 ExecStart=/path/to/node /path/to/fractal-vizarr-viewer/dist/app.js
 Restart=on-failure
 RestartSec=5s
