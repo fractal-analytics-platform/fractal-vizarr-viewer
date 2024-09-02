@@ -126,7 +126,7 @@ npm start
 * `VIZARR_STATIC_FILES_PATH`: path to the files generated running `npm run build` in vizarr source folder;
 * `BASE_PATH`: base path of fractal-vizarr-viewer application;
 * `CACHE_EXPIRATION_TIME`: cookie cache TTL in seconds; when user info is retrieved from a cookie calling the current user endpoint on fractal-server the information is cached for the specified amount of seconds, to reduce the number of calls to fractal-server;
-* `LOG_LEVEL_CONSOLE`: the log level of logs that will be written to the console; the default value is `warn`;
+* `LOG_LEVEL_CONSOLE`: the log level of logs that will be written to the console; the default value is `info`;
 * `LOG_FILE`: the path of the file where logs will be written; by default is unset and no file will be created;
 * `LOG_LEVEL_FILE`: the log level of logs that will be written to the file; the default value is `info`;
 
