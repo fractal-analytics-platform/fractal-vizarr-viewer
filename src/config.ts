@@ -1,24 +1,12 @@
 import * as dotenv from 'dotenv'
 import * as fs from 'fs';
 import { getLogger } from "./logger.js";
+import { AuthorizationScheme, Config } from './types';
 
 // Loading environment variables
 dotenv.config();
 
 const logger = getLogger();
-
-export type AuthorizationScheme = 'allowed-list' | 'user-folders' | 'none';
-
-export type Config = {
-  port: number
-  fractalServerUrl: string
-  basePath: string
-  zarrDataBasePath: string
-  vizarrStaticFilesPath: string
-  authorizationScheme: AuthorizationScheme
-  allowedUsers: string[]
-  cacheExpirationTime: number
-}
 
 function getRequiredEnv(envName: string) {
   const value = process.env[envName];
@@ -44,7 +32,7 @@ function getAllowedUsers(allowedUsersFile?: string) {
 /**
  * @returns the service configuration
  */
-export function getConfig(): Config {
+function loadConfig(): Config {
 
   const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
   const fractalServerUrl = getRequiredEnv('FRACTAL_SERVER_URL');
@@ -90,4 +78,17 @@ export function getConfig(): Config {
     allowedUsers,
     cacheExpirationTime,
   };
+}
+
+let config: Config | null = null;
+
+/**
+ * Loads the configuration from environment variables.
+ * @returns the service configuration
+ */
+export function getConfig(): Config {
+  if (config === null) {
+    config = loadConfig();
+  }
+  return config;
 }
