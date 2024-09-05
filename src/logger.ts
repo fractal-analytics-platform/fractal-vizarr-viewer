@@ -1,4 +1,4 @@
-import log4js from 'log4js';
+import log4js, { Logger } from 'log4js';
 
 function getLayout(pattern: string) {
   return {
@@ -19,7 +19,7 @@ function getLayout(pattern: string) {
   };
 }
 
-export function initLogger(logLevelConsole = 'info', logLevelFile = 'info', logFile = undefined) {
+function initLogger(logLevelConsole = 'info', logLevelFile = 'info', logFile = undefined) {
 
   let appenders: { [name: string]: log4js.Appender } = {
     console: {
@@ -74,5 +74,14 @@ export function initLogger(logLevelConsole = 'info', logLevelFile = 'info', logF
     log4js.getLogger().fatal('Unhandled rejection:', error);
   });
 
+  return logger;
+}
+
+let logger: Logger | null = null;
+
+export function getLogger() {
+  if (logger === null) {
+    logger = initLogger(process.env.LOG_LEVEL_CONSOLE, process.env.LOG_LEVEL_FILE, process.env.LOG_FILE);
+  }
   return logger;
 }
