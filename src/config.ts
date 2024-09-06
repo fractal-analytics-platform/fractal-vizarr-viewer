@@ -47,7 +47,15 @@ function loadConfig(): Config {
     process.exit(1);
   }
 
-  const allowedUsersFile = process.env.ALLOWED_USERS;
+  let allowedUsersFile: undefined | string = undefined;
+  if (authorizationScheme === 'allowed-list') {
+    allowedUsersFile = process.env.ALLOWED_USERS;
+    if (!allowedUsersFile) {
+      logger.error('AUTHORIZATION_SCHEME is set to allowed-list but ALLOWED_USERS is not set');
+      process.exit(1);
+    }
+  }
+
   // Cookie cache TTL in seconds
   const cacheExpirationTime = process.env.CACHE_EXPIRATION_TIME ? parseInt(process.env.CACHE_EXPIRATION_TIME) : 60;
 
