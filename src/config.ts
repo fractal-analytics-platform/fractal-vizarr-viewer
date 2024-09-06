@@ -62,8 +62,9 @@ function loadConfig(): Config {
   logger.debug('BASE_PATH: %s', basePath);
   logger.debug('ZARR_DATA_BASE_PATH: %s', zarrDataBasePath);
   logger.debug('VIZARR_STATIC_FILES_PATH: %s', vizarrStaticFilesPath);
-  logger.debug('ALLOWED_USERS: %s', allowedUsersFile);
-  if (allowedUsersFile) {
+  logger.debug('AUTHORIZATION_SCHEME: %s', authorizationScheme);
+  if (authorizationScheme === 'allowed-list') {
+    logger.debug('ALLOWED_USERS: %s', allowedUsersFile);
     logger.debug('Allowed users: %s', allowedUsers.join(', '));
   }
   logger.debug('CACHE_EXPIRATION_TIME: %d', cacheExpirationTime);

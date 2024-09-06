@@ -34,7 +34,7 @@ export function mockConfig(config: Partial<Config>) {
   };
 }
 
-export function getMockedRequest(path: string, cookie: string) {
+export function getMockedRequest(path: string, cookie: string | undefined) {
   return {
     path,
     get: () => {

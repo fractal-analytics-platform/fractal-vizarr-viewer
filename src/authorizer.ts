@@ -55,7 +55,7 @@ abstract class BaseAuthorizer {
     return completePath;
   }
 
-  getValidPath(req: Request): string {
+  getValidPath(req: Request): string | undefined {
     const requestPath = req.path.normalize();
     const completePath = requestPath.startsWith(config.zarrDataBasePath) ?
       requestPath : path.join(config.zarrDataBasePath, requestPath);
@@ -77,7 +77,7 @@ abstract class BaseAuthorizer {
     return result;
   }
 
-  abstract isUserAuthorized(completePath: string, user: User): boolean;
+  abstract isUserAuthorized(completePath: string, user: User | undefined): boolean;
 
   async getUserFromCookie(req: Request): Promise<User | undefined> {
     const cookie = req.get('Cookie');
@@ -90,9 +90,9 @@ abstract class BaseAuthorizer {
       await new Promise(r => setTimeout(r));
     }
     loadingCookies.push(cookie);
-    let user = undefined;
+    let user: User | undefined = undefined;
     try {
-      const value: string = await cookiesCache.get(cookie);
+      const value: string | undefined = await cookiesCache.get(cookie);
       if (value) {
         user = JSON.parse(value);
       } else {
@@ -103,7 +103,7 @@ abstract class BaseAuthorizer {
           }
         });
         if (response.ok) {
-          user = await response.json();
+          user = await response.json() as User;
           logger.trace("Retrieved user %s", user.email);
           cookiesCache.set(cookie, JSON.stringify(user));
         } else {
@@ -118,8 +118,11 @@ abstract class BaseAuthorizer {
 }
 
 export class AllowedListAuthorizer extends BaseAuthorizer {
-  isUserAuthorized(_: string, user: User): boolean {
-    const authorized = user && config.allowedUsers.includes(user.email);
+  isUserAuthorized(_: string, user: User | undefined): boolean {
+    if (!user) {
+      return false;
+    }
+    const authorized = config.allowedUsers.includes(user.email);
     if (!authorized) {
       logger.debug("User is not in the list of allowed users");
     }
@@ -134,7 +137,7 @@ export class NoneAuthorizer extends BaseAuthorizer {
 }
 
 export class UserFoldersAuthorizer extends BaseAuthorizer {
-  isUserAuthorized(completePath: string, user: User): boolean {
+  isUserAuthorized(completePath: string, user: User | undefined): boolean {
     if (!user) {
       return false;
     }

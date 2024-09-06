@@ -7,7 +7,7 @@
     "lint": "eslint . --ext .ts",
     "build": "tsc",
     "start": "tsc && node dist/app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest"
   },
   "type": "module",
   "keywords": [],

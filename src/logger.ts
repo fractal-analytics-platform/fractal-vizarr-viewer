@@ -19,7 +19,7 @@ function getLayout(pattern: string) {
   };
 }
 
-function initLogger(logLevelConsole = 'info', logLevelFile = 'info', logFile = undefined) {
+function initLogger(logLevelConsole = 'info', logLevelFile = 'info', logFile: string | undefined = undefined) {
 
   let appenders: { [name: string]: log4js.Appender } = {
     console: {
