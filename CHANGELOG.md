@@ -3,6 +3,7 @@ Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-vi
 # Unreleased
 
 * Supported different schemes for authorization (\#25);
+* Added first unit tests (\#25);
 
 # 0.1.1
 
