@@ -15,7 +15,7 @@ When a user logins to fractal-web, the browser receives a cookie that is generat
 
 ![Fractal Data cookie flow](./fractal-vizarr-viewer-cookie-flow.png)
 
-Currently the authorization check verifies if the user email retrieved from the cookie has been added to the file specified by the `ALLOWED_USERS` environment variable. The file contains the email addresses of authorized users separated by newlines. In the future more complex authorization mechanisms can be set up, also using an additional table in fractal-server to check allowed paths.
+Currently the authorization check verifies if the user email retrieved from the cookie has been added to the file specified by the `ALLOWED_USERS_FILE` environment variable. The file contains the email addresses of authorized users separated by newlines. In the future more complex authorization mechanisms can be set up, also using an additional table in fractal-server to check allowed paths.
 
 ### Note about the domain constraint
 
@@ -108,6 +108,8 @@ FRACTAL_SERVER_URL=http://localhost:8000
 ZARR_DATA_BASE_PATH=/somewhere/zarr-files/
 VIZARR_STATIC_FILES_PATH=/somewhere/vizarr/dist/
 BASE_PATH=/vizarr
+AUTHORIZATION_SCHEME=allowed-list
+ALLOWED_USERS_FILE=/somewhere/allowed-users.txt
 CACHE_EXPIRATION_TIME=60
 ```
 
@@ -125,6 +127,10 @@ npm start
 * `ZARR_DATA_BASE_PATH`: path to Zarr files served by fractal-vizarr-viewer; the app reads files only in this directory;
 * `VIZARR_STATIC_FILES_PATH`: path to the files generated running `npm run build` in vizarr source folder;
 * `BASE_PATH`: base path of fractal-vizarr-viewer application;
+* `AUTHORIZATION_SCHEME`: defines how the service verifies user authorization. The following options are available:
+  * `allowed-list`: users must be listed in a text file containing their email addresses, one per line. The path to this file must be specified using the `ALLOWED_USERS_FILE` environment variable. This is the default setting.
+  * `user-folders`: each registered user can only access their own folder, which corresponds to a directory under `ZARR_DATA_BASE_PATH` named as their `slurm_user` field.
+  * `none`: no authorization checks are performed, allowing access to all users, including anonymous ones. This option is useful for demonstrations and testing but should not be used in production environments.
 * `CACHE_EXPIRATION_TIME`: cookie cache TTL in seconds; when user info is retrieved from a cookie calling the current user endpoint on fractal-server the information is cached for the specified amount of seconds, to reduce the number of calls to fractal-server;
 * `LOG_LEVEL_CONSOLE`: the log level of logs that will be written to the console; the default value is `info`;
 * `LOG_FILE`: the path of the file where logs will be written; by default is unset and no file will be created;
@@ -155,7 +161,7 @@ Environment="FRACTAL_SERVER_URL=https://fractal-server.example.com/"
 Environment="ZARR_DATA_BASE_PATH=/path/to/zarr-files"
 Environment="VIZARR_STATIC_FILES_PATH=/path/to/vizarr/dist"
 Environment="BASE_PATH=/vizarr"
-Environment="ALLOWED_USERS=/path/to/allowed-users.txt"
+Environment="ALLOWED_USERS_FILE=/path/to/allowed-users.txt"
 Environment="CACHE_EXPIRATION_TIME=60"
 Environment="LOG_FILE=/path/to/log"
 Environment="LOG_LEVEL_FILE=info"
@@ -190,7 +196,7 @@ docker run --network host \
   -v /path/to/zarr-files:/zarr-files \
   -e ZARR_DATA_BASE_PATH=/zarr-files \
   -e FRACTAL_SERVER_URL=http://localhost:8000 \
-  -e ALLOWED_USERS=/allowed_users.txt \
+  -e ALLOWED_USERS_FILE=/allowed_users.txt \
   fractal-vizarr-viewer
 ```
 

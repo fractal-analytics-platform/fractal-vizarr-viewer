@@ -7,7 +7,7 @@
     "lint": "eslint . --ext .ts",
     "build": "tsc",
     "start": "tsc && node dist/app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest"
   },
   "type": "module",
   "keywords": [],
@@ -17,7 +17,8 @@
     "@types/express": "^4.17.21",
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "eslint": "^8.57.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.0.5"
   },
   "dependencies": {
     "cache-manager": "^5.7.3",

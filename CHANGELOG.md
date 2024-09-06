@@ -1,5 +1,10 @@
 Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-viewer repository.
 
+# Unreleased
+
+* Supported different schemes for authorization (\#25);
+* Added first unit tests (\#25);
+
 # 0.1.1
 
 * Added log4js dependency and configured logging (\#22);
