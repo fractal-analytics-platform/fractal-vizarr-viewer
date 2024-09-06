@@ -17,7 +17,7 @@ RUN mkdir /fractal-vizarr-viewer
 
 WORKDIR /fractal-vizarr-viewer
 
-ADD src .
+ADD src src
 ADD package* .
 ADD tsconfig.json .
 
