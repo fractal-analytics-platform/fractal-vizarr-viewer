@@ -17,16 +17,13 @@ function getRequiredEnv(envName: string) {
   return value;
 }
 
-function getAllowedUsers(allowedUsersFile?: string) {
-  if (allowedUsersFile) {
-    if (!fs.existsSync(allowedUsersFile)) {
-      logger.error('Allowed users file not found: %s', allowedUsersFile);
-      process.exit(1);
-    }
-    const allowedUsersData = fs.readFileSync(allowedUsersFile).toString();
-    return allowedUsersData.split('\n').map(n => n.trim()).filter(n => !!n);
+function getAllowedUsers(allowedUsersFile: string) {
+  if (!fs.existsSync(allowedUsersFile)) {
+    logger.error('Allowed users file not found: %s', allowedUsersFile);
+    process.exit(1);
   }
-  return [];
+  const allowedUsersData = fs.readFileSync(allowedUsersFile).toString();
+  return allowedUsersData.split('\n').map(n => n.trim()).filter(n => !!n);
 }
 
 /**
@@ -49,9 +46,9 @@ function loadConfig(): Config {
 
   let allowedUsersFile: undefined | string = undefined;
   if (authorizationScheme === 'allowed-list') {
-    allowedUsersFile = process.env.ALLOWED_USERS;
+    allowedUsersFile = process.env.ALLOWED_USERS_FILE;
     if (!allowedUsersFile) {
-      logger.error('AUTHORIZATION_SCHEME is set to allowed-list but ALLOWED_USERS is not set');
+      logger.error('AUTHORIZATION_SCHEME is set to allowed-list but ALLOWED_USERS_FILE is not set');
       process.exit(1);
     }
   }
@@ -64,7 +61,7 @@ function loadConfig(): Config {
     basePath += '/';
   }
 
-  const allowedUsers = getAllowedUsers(allowedUsersFile);
+  let allowedUsers: string[] = [];
 
   logger.debug('FRACTAL_SERVER_URL: %s', fractalServerUrl);
   logger.debug('BASE_PATH: %s', basePath);
@@ -72,7 +69,8 @@ function loadConfig(): Config {
   logger.debug('VIZARR_STATIC_FILES_PATH: %s', vizarrStaticFilesPath);
   logger.debug('AUTHORIZATION_SCHEME: %s', authorizationScheme);
   if (authorizationScheme === 'allowed-list') {
-    logger.debug('ALLOWED_USERS: %s', allowedUsersFile);
+    logger.debug('ALLOWED_USERS_FILE: %s', allowedUsersFile);
+    allowedUsers = getAllowedUsers(allowedUsersFile!);
     logger.debug('Allowed users: %s', allowedUsers.join(', '));
   }
   logger.debug('CACHE_EXPIRATION_TIME: %d', cacheExpirationTime);

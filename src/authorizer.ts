@@ -1,4 +1,3 @@
-
 import * as path from 'path';
 // Needed for node 16
 import fetch from 'node-fetch';
