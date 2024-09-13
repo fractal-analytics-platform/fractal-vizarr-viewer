@@ -1,6 +1,6 @@
 {
   "name": "fractal-vizarr-viewer",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "",
   "main": "dist/app.js",
   "scripts": {
@@ -27,14 +27,14 @@
     "log4js": "^6.9.1",
     "node-fetch": "^3.3.2"
   },
-	"files": [
-		"dist"
-	],
-	"bundleDependencies": [
-		"cache-manager",
-		"dotenv",
-		"express",
-		"log4js",
-		"node-fetch"
-	]
+  "files": [
+    "dist"
+  ],
+  "bundleDependencies": [
+    "cache-manager",
+    "dotenv",
+    "express",
+    "log4js",
+    "node-fetch"
+  ]
 }
