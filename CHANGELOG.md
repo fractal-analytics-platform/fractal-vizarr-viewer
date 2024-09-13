@@ -1,5 +1,12 @@
 Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-viewer repository.
 
+# Unreleased
+
+* Updated documentation (\#29);
+* Run npm audit fix (\#29);
+* Added CI configuration for stable Docker image (\#29);
+* Added CI configuration for GitHub release (\#29);
+
 # 0.1.2
 
 * Supported different schemes for authorization (\#25);
