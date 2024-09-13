@@ -1,0 +1,97 @@
+name: Create GitHub release
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+[a-c][0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-[a-c][0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+alpha[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+beta[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+rc[0-9]+'
+
+jobs:
+  build-vizarr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Clone vizarr
+        run: git clone https://github.com/hms-dbmi/vizarr.git
+
+      - name: Checkout vizarr commit
+        run: |
+          cd vizarr
+          git checkout 55845ffb658fa04ee2fb649a434c4c16c587233e
+
+      - name: Apply patch
+        run: |
+          cd vizarr
+          git apply ../vizarr.patch
+
+      - name: Install dependencies
+        run: |
+          cd vizarr
+          pnpm install
+
+      - name: Generate build artifacts
+        run: |
+          cd vizarr
+          pnpm run build
+
+      - name: Generate the package
+        run: |
+          cd vizarr
+          tar -czpf fractal-vizarr-${{ github.ref_name }}.tar.gz dist LICENSE
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: vizarr/fractal-vizarr-${{ github.ref_name }}.tar.gz
+
+  build-server:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: ['16', '18', '20']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate build artifacts
+        run: npm run build
+
+      - name: Generate the package
+        run: npm pack
+
+      - name: Extract the package
+        run: tar -xzf fractal-vizarr-viewer-*.tgz
+
+      - name: Repack the package removing parent folder
+        run: tar -C package -czf node-${{ matrix.node-version }}-fractal-vizarr-viewer-${{ github.ref_name }}.tar.gz dist package.json node_modules LICENSE
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: node-${{ matrix.node-version }}-fractal-vizarr-viewer-${{ github.ref_name }}.tar.gz

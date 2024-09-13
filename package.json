@@ -26,5 +26,15 @@
     "express": "^4.18.2",
     "log4js": "^6.9.1",
     "node-fetch": "^3.3.2"
-  }
+  },
+	"files": [
+		"dist"
+	],
+	"bundleDependencies": [
+		"cache-manager",
+		"dotenv",
+		"express",
+		"log4js",
+		"node-fetch"
+	]
 }
