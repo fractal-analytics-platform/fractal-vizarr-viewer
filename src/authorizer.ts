@@ -67,11 +67,9 @@ abstract class BaseAuthorizer {
     if (!config.zarrDataBasePath) {
       return requestPath;
     }
-    const completePath = requestPath.startsWith(config.zarrDataBasePath) ?
-      requestPath : path.join(config.zarrDataBasePath, requestPath);
     // Ensure that the selected path is a subfolder of the base data folder
-    if (this.isSubfolder(config.zarrDataBasePath, completePath)) {
-      return completePath;
+    if (this.isSubfolder(config.zarrDataBasePath, requestPath)) {
+      return requestPath;
     }
     return undefined;
   }

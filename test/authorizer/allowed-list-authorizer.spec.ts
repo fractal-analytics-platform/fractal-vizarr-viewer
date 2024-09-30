@@ -24,12 +24,6 @@ describe('Allowed list authorizer', () => {
     expect(path).eq('/path/to/zarr/data/foo/bar');
   });
 
-  it('Allowed user with valid relative path', async () => {
-    const request = getMockedRequest('/foo/bar', 'cookie-user-1');
-    const path = await authorizer.getAuthorizedPath(request);
-    expect(path).eq('/path/to/zarr/data/foo/bar');
-  });
-
   it('Not allowed user with valid path', async () => {
     const request = getMockedRequest('/foo/bar', 'cookie-user-2');
     const path = await authorizer.getAuthorizedPath(request);
