@@ -17,8 +17,11 @@ export type User = {
   is_active: boolean
   is_superuser: boolean
   is_verified: boolean
+  username: string | null
+}
+
+export type UserSettings = {
   slurm_user: string | null
   cache_dir: string | null
-  username: string | null
   slurm_accounts: string[]
 }

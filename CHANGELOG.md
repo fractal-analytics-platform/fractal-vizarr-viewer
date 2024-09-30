@@ -1,5 +1,9 @@
 Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-viewer repository.
 
+# Unreleased
+
+* Fix broken `AUTHORIZATION_SCHEME=user-folders` (\#34);
+
 # 0.1.3
 
 * Updated documentation (\#29);

@@ -5,7 +5,7 @@ import type { Request } from 'express';
 import { caching } from 'cache-manager';
 import { getConfig } from './config.js';
 import { getLogger } from "./logger.js";
-import { User } from "./types";
+import { User, UserSettings } from "./types";
 
 const config = getConfig();
 const logger = getLogger();
@@ -14,9 +14,14 @@ const cookiesCache = await caching('memory', {
   ttl: config.cacheExpirationTime * 1000 // milliseconds
 });
 
+const settingsCache = await caching('memory', {
+  ttl: config.cacheExpirationTime * 1000 // milliseconds
+});
+
 // Track the cookies for which we are retrieving the user info from fractal-server
 // Used to avoid querying the cache while the fetch call is in progress
 let loadingCookies: string[] = [];
+let loadingSettings: string[] = [];
 
 /**
  * Returns the class that performs the authorization logic.
@@ -47,7 +52,8 @@ abstract class BaseAuthorizer {
       return;
     }
     const user = await this.getUserFromCookie(req);
-    if (!this.isUserAuthorized(completePath, user)) {
+    const authorized = await this.isUserAuthorized(completePath, user, req.get('Cookie'));
+    if (!authorized) {
       return undefined;
     }
     logger.trace("Path to load: %s", completePath);
@@ -76,7 +82,7 @@ abstract class BaseAuthorizer {
     return result;
   }
 
-  abstract isUserAuthorized(completePath: string, user: User | undefined): boolean;
+  abstract isUserAuthorized(completePath: string, user: User | undefined, cookie: string | undefined): Promise<boolean>;
 
   async getUserFromCookie(req: Request): Promise<User | undefined> {
     const cookie = req.get('Cookie');
@@ -117,7 +123,7 @@ abstract class BaseAuthorizer {
 }
 
 export class AllowedListAuthorizer extends BaseAuthorizer {
-  isUserAuthorized(_: string, user: User | undefined): boolean {
+  async isUserAuthorized(_: string, user: User | undefined): Promise<boolean> {
     if (!user) {
       return false;
     }
@@ -130,17 +136,46 @@ export class AllowedListAuthorizer extends BaseAuthorizer {
 }
 
 export class NoneAuthorizer extends BaseAuthorizer {
-  isUserAuthorized(): boolean {
+  async isUserAuthorized(): Promise<boolean> {
     return true;
   }
 }
 
 export class UserFoldersAuthorizer extends BaseAuthorizer {
-  isUserAuthorized(completePath: string, user: User | undefined): boolean {
-    if (!user) {
+  async isUserAuthorized(completePath: string, user: User | undefined, cookie: string | undefined): Promise<boolean> {
+    if (!user || !cookie) {
       return false;
     }
-    const username = user.slurm_user;
+    while (loadingSettings.includes(cookie)) {
+      // a fetch call for this cookie is in progress; wait for its completion
+      await new Promise(r => setTimeout(r));
+    }
+    loadingSettings.push(cookie);
+    let settings: UserSettings | undefined = undefined;
+    try {
+      const value: string | undefined = await settingsCache.get(cookie);
+      if (value) {
+        settings = JSON.parse(value) as UserSettings;
+      } else {
+        logger.trace("Retrieving settings from cookie");
+        const response = await fetch(`${config.fractalServerUrl}/auth/current-user/settings/`, {
+          headers: {
+            'Cookie': cookie
+          }
+        });
+        if (response.ok) {
+          settings = await response.json() as UserSettings;
+          logger.trace("Retrieved settings for user %s", user.email);
+          settingsCache.set(cookie, JSON.stringify(settings));
+        } else {
+          logger.debug("Fractal server replied with %d while retrieving settings from cookie", response.status);
+          return false;
+        }
+      }
+    } finally {
+      loadingSettings = loadingSettings.filter(c => c !== cookie);
+    }
+    const username = settings.slurm_user;
     if (!username) {
       logger.warn('Slurm user is not defined for "%s"', user.email);
       return false;
