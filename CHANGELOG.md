@@ -3,6 +3,7 @@ Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-vi
 # Unreleased
 
 * Supported `AUTHORIZATION_SCHEME="fractal-server-viewer-paths"` (\#35);
+* Supported URL encoded characters in path (\#35);
 
 # 0.1.4
 

@@ -34,4 +34,10 @@ describe('None authorizer', () => {
     const path = await authorizer.getAuthorizedPath(request);
     expect(path).eq(undefined);
   });
+
+  it('Path with URL encoded characters', async () => {
+    const request = getMockedRequest('/path/to/zarr/data/foo/bar%23baz', undefined);
+    const path = await authorizer.getAuthorizedPath(request);
+    expect(path).eq('/path/to/zarr/data/foo/bar#baz');
+  });
 });

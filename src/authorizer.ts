@@ -63,7 +63,7 @@ abstract class BaseAuthorizer {
   }
 
   getValidPath(req: Request): string | undefined {
-    const requestPath = req.path.normalize();
+    const requestPath = decodeURIComponent(req.path).normalize();
     if (!config.zarrDataBasePath) {
       return requestPath;
     }
