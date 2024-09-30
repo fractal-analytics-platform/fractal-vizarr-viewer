@@ -47,7 +47,8 @@ function loadConfig(): Config {
   if (authorizationScheme !== 'fractal-server-viewer-paths') {
     zarrDataBasePath = getRequiredEnv('ZARR_DATA_BASE_PATH');
   } else if (process.env.ZARR_DATA_BASE_PATH) {
-    logger.warn(`ZARR_DATA_BASE_PATH will be ignored because AUTHORIZATION_SCHEME is set to fractal-server-viewer-paths`);
+    logger.error(`ZARR_DATA_BASE_PATH will be ignored because AUTHORIZATION_SCHEME is set to fractal-server-viewer-paths`);
+    process.exit(1);
   }
 
   let allowedUsersFile: undefined | string = undefined;
