@@ -1,4 +1,4 @@
-export type AuthorizationScheme = 'fractal-server-viewer-paths' | 'allowed-list' | 'user-folders' | 'none';
+export type AuthorizationScheme = 'fractal-server-viewer-paths' | 'user-folders' | 'none';
 
 export type Config = {
   port: number
@@ -7,7 +7,6 @@ export type Config = {
   zarrDataBasePath: string | null
   vizarrStaticFilesPath: string
   authorizationScheme: AuthorizationScheme
-  allowedUsers: string[]
   cacheExpirationTime: number
 }
 

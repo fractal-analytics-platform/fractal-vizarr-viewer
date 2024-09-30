@@ -30,8 +30,6 @@ export function getAuthorizer() {
   switch (config.authorizationScheme) {
     case 'fractal-server-viewer-paths':
       return new ViewerPathsAuthorizer();
-    case 'allowed-list':
-      return new AllowedListAuthorizer();
     case 'user-folders':
       return new UserFoldersAuthorizer();
     case 'none':
@@ -122,19 +120,6 @@ abstract class BaseAuthorizer {
       loadingCookies = loadingCookies.filter(c => c !== cookie);
     }
     return user;
-  }
-}
-
-export class AllowedListAuthorizer extends BaseAuthorizer {
-  async isUserAuthorized(_: string, user: User | undefined): Promise<boolean> {
-    if (!user) {
-      return false;
-    }
-    const authorized = config.allowedUsers.includes(user.email);
-    if (!authorized) {
-      logger.debug("User is not in the list of allowed users");
-    }
-    return authorized;
   }
 }
 

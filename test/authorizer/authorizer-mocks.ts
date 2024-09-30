@@ -26,8 +26,7 @@ export function mockConfig(config: Partial<Config>) {
   const getConfig = () => ({
     fractalServerUrl: 'http://localhost:8000',
     zarrDataBasePath: '/path/to/zarr/data',
-    authorizationScheme: config.authorizationScheme,
-    allowedUsers: config.allowedUsers || []
+    authorizationScheme: config.authorizationScheme
   });
   return {
     getConfig
