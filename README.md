@@ -57,11 +57,11 @@ To start the application installed in this way see the section [Run fractal-viza
 
 * `PORT`: the port where fractal-vizarr-viewer app is served;
 * `FRACTAL_SERVER_URL`: the base URL of fractal-server;
-* `ZARR_DATA_BASE_PATH`: path to Zarr files served by fractal-vizarr-viewer; the app reads files only in this directory;
+* `ZARR_DATA_BASE_PATH`: path to Zarr files served by fractal-vizarr-viewer; when this variable is set the app reads files only in this directory; it is ignored if the `AUTHORIZATION_SCHEME` is set to `fractal-server-viewer-paths`;
 * `VIZARR_STATIC_FILES_PATH`: path to the files generated running `npm run build` in vizarr source folder;
 * `BASE_PATH`: base path of fractal-vizarr-viewer application;
 * `AUTHORIZATION_SCHEME`: defines how the service verifies user authorization. The following options are available:
-  * `allowed-list`: users must be listed in a text file containing their email addresses, one per line. The path to this file must be specified using the `ALLOWED_USERS_FILE` environment variable. This is the default setting.
+  * `fractal-server-viewer-paths`: the paths that can be accessed by each user are retrieved calling fractal-server API;
   * `user-folders`: each registered user can only access their own folder, which corresponds to a directory under `ZARR_DATA_BASE_PATH` named as their `slurm_user` field.
   * `none`: no authorization checks are performed, allowing access to all users, including anonymous ones. This option is useful for demonstrations and testing but should not be used in production environments.
 * `CACHE_EXPIRATION_TIME`: cookie cache TTL in seconds; when user info is retrieved from a cookie calling the current user endpoint on fractal-server the information is cached for the specified amount of seconds, to reduce the number of calls to fractal-server;
@@ -80,8 +80,7 @@ export PORT=3000
 export FRACTAL_SERVER_URL=http://localhost:8000
 export ZARR_DATA_BASE_PATH=/path/to/zarr-files
 export VIZARR_STATIC_FILES_PATH=/path/to/vizarr/dist
-export AUTHORIZATION_SCHEME=allowed-list
-export ALLOWED_USERS_FILE=/path/to/allowed-users.txt
+export AUTHORIZATION_SCHEME=fractal-server-viewer-paths
 # default values for logging levels (uncomment if needed)
 # export LOG_LEVEL_CONSOLE=info
 # export LOG_FILE=/path/to/log
@@ -116,7 +115,7 @@ unzip 20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr.zip?download=1
 
 Login on fractal-web and then on another tab open the following URL to display the example dataset:
 
-http://localhost:3000/vizarr?source=http://localhost:3000/vizarr/data/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0
+http://localhost:3000/vizarr?source=http://localhost:3000/vizarr/data/path/to/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0
 
 ## Production setup
 
@@ -143,7 +142,7 @@ Environment="FRACTAL_SERVER_URL=https://fractal-server.example.com/"
 Environment="ZARR_DATA_BASE_PATH=/path/to/zarr-files"
 Environment="VIZARR_STATIC_FILES_PATH=/path/to/vizarr/dist"
 Environment="BASE_PATH=/vizarr"
-Environment="ALLOWED_USERS_FILE=/path/to/allowed-users.txt"
+Environment="AUTHORIZATION_SCHEME=fractal-server-viewer-paths"
 Environment="CACHE_EXPIRATION_TIME=60"
 Environment="LOG_FILE=/path/to/log"
 Environment="LOG_LEVEL_FILE=info"
@@ -211,11 +210,10 @@ The following command can be used to start the docker image for testing:
 
 ```sh
 docker run --network host \
-  -v /path/to/allowed_users.txt:/allowed_users.txt \
   -v /path/to/zarr-files:/zarr-files \
   -e ZARR_DATA_BASE_PATH=/zarr-files \
   -e FRACTAL_SERVER_URL=http://localhost:8000 \
-  -e ALLOWED_USERS_FILE=/allowed_users.txt \
+  -e AUTHORIZATION_SCHEME=fractal-server-viewer-paths \
   fractal-vizarr-viewer
 ```
 

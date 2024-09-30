@@ -1,5 +1,4 @@
-import * as dotenv from 'dotenv'
-import * as fs from 'fs';
+import * as dotenv from 'dotenv';
 import { getLogger } from "./logger.js";
 import { AuthorizationScheme, Config } from './types';
 
@@ -17,15 +16,6 @@ function getRequiredEnv(envName: string) {
   return value;
 }
 
-function getAllowedUsers(allowedUsersFile: string) {
-  if (!fs.existsSync(allowedUsersFile)) {
-    logger.error('Allowed users file not found: %s', allowedUsersFile);
-    process.exit(1);
-  }
-  const allowedUsersData = fs.readFileSync(allowedUsersFile).toString();
-  return allowedUsersData.split('\n').map(n => n.trim()).filter(n => !!n);
-}
-
 /**
  * @returns the service configuration
  */
@@ -33,24 +23,22 @@ function loadConfig(): Config {
 
   const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
   const fractalServerUrl = getRequiredEnv('FRACTAL_SERVER_URL');
-  const zarrDataBasePath = getRequiredEnv('ZARR_DATA_BASE_PATH');
   const vizarrStaticFilesPath = getRequiredEnv('VIZARR_STATIC_FILES_PATH');
 
-  const validAuthorizationSchemes = ['allowed-list', 'user-folders', 'none'];
-  const authorizationScheme = process.env.AUTHORIZATION_SCHEME || 'allowed-list';
+  const validAuthorizationSchemes = ['fractal-server-viewer-paths', 'user-folders', 'none'];
+  const authorizationScheme = getRequiredEnv('AUTHORIZATION_SCHEME');
   if (!validAuthorizationSchemes.includes(authorizationScheme)) {
     logger.error('Invalid authorization scheme "%s", allowed values: %s', authorizationScheme,
       validAuthorizationSchemes.map(v => `"${v}"`).join(', '));
     process.exit(1);
   }
 
-  let allowedUsersFile: undefined | string = undefined;
-  if (authorizationScheme === 'allowed-list') {
-    allowedUsersFile = process.env.ALLOWED_USERS_FILE;
-    if (!allowedUsersFile) {
-      logger.error('AUTHORIZATION_SCHEME is set to allowed-list but ALLOWED_USERS_FILE is not set');
-      process.exit(1);
-    }
+  let zarrDataBasePath: string | null = null;
+  if (authorizationScheme !== 'fractal-server-viewer-paths') {
+    zarrDataBasePath = getRequiredEnv('ZARR_DATA_BASE_PATH');
+  } else if (process.env.ZARR_DATA_BASE_PATH) {
+    logger.error(`ZARR_DATA_BASE_PATH will be ignored because AUTHORIZATION_SCHEME is set to fractal-server-viewer-paths`);
+    process.exit(1);
   }
 
   // Cookie cache TTL in seconds
@@ -61,18 +49,13 @@ function loadConfig(): Config {
     basePath += '/';
   }
 
-  let allowedUsers: string[] = [];
-
   logger.debug('FRACTAL_SERVER_URL: %s', fractalServerUrl);
   logger.debug('BASE_PATH: %s', basePath);
-  logger.debug('ZARR_DATA_BASE_PATH: %s', zarrDataBasePath);
+  if (zarrDataBasePath) {
+    logger.debug('ZARR_DATA_BASE_PATH: %s', zarrDataBasePath);
+  }
   logger.debug('VIZARR_STATIC_FILES_PATH: %s', vizarrStaticFilesPath);
   logger.debug('AUTHORIZATION_SCHEME: %s', authorizationScheme);
-  if (authorizationScheme === 'allowed-list') {
-    logger.debug('ALLOWED_USERS_FILE: %s', allowedUsersFile);
-    allowedUsers = getAllowedUsers(allowedUsersFile!);
-    logger.debug('Allowed users: %s', allowedUsers.join(', '));
-  }
   logger.debug('CACHE_EXPIRATION_TIME: %d', cacheExpirationTime);
 
   return {
@@ -82,7 +65,6 @@ function loadConfig(): Config {
     zarrDataBasePath,
     vizarrStaticFilesPath,
     authorizationScheme: authorizationScheme as AuthorizationScheme,
-    allowedUsers,
     cacheExpirationTime,
   };
 }

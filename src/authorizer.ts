@@ -10,26 +10,26 @@ import { User, UserSettings } from "./types";
 const config = getConfig();
 const logger = getLogger();
 
-const cookiesCache = await caching('memory', {
-  ttl: config.cacheExpirationTime * 1000 // milliseconds
-});
+// cache TTL in milliseconds
+const ttl = config.cacheExpirationTime * 1000;
 
-const settingsCache = await caching('memory', {
-  ttl: config.cacheExpirationTime * 1000 // milliseconds
-});
+const cookiesCache = await caching('memory', { ttl });
+const settingsCache = await caching('memory', { ttl });
+const viewerPathsCache = await caching('memory', { ttl });
 
 // Track the cookies for which we are retrieving the user info from fractal-server
 // Used to avoid querying the cache while the fetch call is in progress
 let loadingCookies: string[] = [];
 let loadingSettings: string[] = [];
+let loadingViewerPaths: string[] = [];
 
 /**
  * Returns the class that performs the authorization logic.
  */
 export function getAuthorizer() {
   switch (config.authorizationScheme) {
-    case 'allowed-list':
-      return new AllowedListAuthorizer();
+    case 'fractal-server-viewer-paths':
+      return new ViewerPathsAuthorizer();
     case 'user-folders':
       return new UserFoldersAuthorizer();
     case 'none':
@@ -61,12 +61,13 @@ abstract class BaseAuthorizer {
   }
 
   getValidPath(req: Request): string | undefined {
-    const requestPath = req.path.normalize();
-    const completePath = requestPath.startsWith(config.zarrDataBasePath) ?
-      requestPath : path.join(config.zarrDataBasePath, requestPath);
+    const requestPath = decodeURIComponent(req.path).normalize();
+    if (!config.zarrDataBasePath) {
+      return requestPath;
+    }
     // Ensure that the selected path is a subfolder of the base data folder
-    if (this.isSubfolder(config.zarrDataBasePath, completePath)) {
-      return completePath;
+    if (this.isSubfolder(config.zarrDataBasePath, requestPath)) {
+      return requestPath;
     }
     return undefined;
   }
@@ -122,19 +123,6 @@ abstract class BaseAuthorizer {
   }
 }
 
-export class AllowedListAuthorizer extends BaseAuthorizer {
-  async isUserAuthorized(_: string, user: User | undefined): Promise<boolean> {
-    if (!user) {
-      return false;
-    }
-    const authorized = config.allowedUsers.includes(user.email);
-    if (!authorized) {
-      logger.debug("User is not in the list of allowed users");
-    }
-    return authorized;
-  }
-}
-
 export class NoneAuthorizer extends BaseAuthorizer {
   async isUserAuthorized(): Promise<boolean> {
     return true;
@@ -180,10 +168,51 @@ export class UserFoldersAuthorizer extends BaseAuthorizer {
       logger.warn('Slurm user is not defined for "%s"', user.email);
       return false;
     }
-    const userPath = path.join(config.zarrDataBasePath, username);
-    if (!this.isSubfolder(config.zarrDataBasePath, userPath)) {
+    const userPath = path.join(config.zarrDataBasePath!, username);
+    if (!this.isSubfolder(config.zarrDataBasePath!, userPath)) {
       return false;
     }
     return completePath.startsWith(userPath);
+  }
+}
+
+export class ViewerPathsAuthorizer extends BaseAuthorizer {
+  async isUserAuthorized(completePath: string, user: User | undefined, cookie: string | undefined): Promise<boolean> {
+    if (!user || !cookie) {
+      return false;
+    }
+    while (loadingViewerPaths.includes(cookie)) {
+      // a fetch call for this cookie is in progress; wait for its completion
+      await new Promise(r => setTimeout(r));
+    }
+    loadingViewerPaths.push(cookie);
+    try {
+      let viewerPaths: string[] | undefined = await viewerPathsCache.get(cookie);
+      if (viewerPaths === undefined) {
+        logger.trace('Retrieving viewer paths for user %s', user.email);
+        const response = await fetch(`${config.fractalServerUrl}/auth/current-user/viewer-paths/`, {
+          headers: {
+            'Cookie': cookie
+          }
+        });
+        if (response.ok) {
+          viewerPaths = await response.json() as string[];
+          logger.trace('Retrieved %d viewer paths for user %s', viewerPaths.length, user.email);
+          viewerPathsCache.set(cookie, viewerPaths);
+        } else {
+          logger.debug('Fractal server replied with %d while retrieving viewer paths for user %s', response.status, user.email);
+          return false;
+        }
+      }
+      for (const viewerPath of viewerPaths) {
+        if (path.resolve(completePath).startsWith(viewerPath)) {
+          return true;
+        }
+      }
+      logger.trace('Unauthorized path %s', completePath);
+      return false;
+    } finally {
+      loadingViewerPaths = loadingViewerPaths.filter(c => c !== cookie);
+    }
   }
 }
