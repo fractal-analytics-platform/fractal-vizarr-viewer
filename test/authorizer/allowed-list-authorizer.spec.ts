@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getMockedRequest, mockConfig, mockFetch } from './authorizer-mocks.js';
+import { getMockedRequest, mockConfig, mockFetchUser } from './authorizer-mocks.js';
 
 vi.mock('../../src/config.js', () => {
   return mockConfig({
@@ -10,7 +10,7 @@ vi.mock('../../src/config.js', () => {
 
 vi.mock('node-fetch', () => {
   return {
-    default: mockFetch
+    default: mockFetchUser
   };
 });
 

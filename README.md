@@ -57,10 +57,11 @@ To start the application installed in this way see the section [Run fractal-viza
 
 * `PORT`: the port where fractal-vizarr-viewer app is served;
 * `FRACTAL_SERVER_URL`: the base URL of fractal-server;
-* `ZARR_DATA_BASE_PATH`: path to Zarr files served by fractal-vizarr-viewer; the app reads files only in this directory;
+* `ZARR_DATA_BASE_PATH`: path to Zarr files served by fractal-vizarr-viewer; when this variable is set the app reads files only in this directory; it is ignored if the `AUTHORIZATION_SCHEME` is set to `fractal-server-viewer-paths`;
 * `VIZARR_STATIC_FILES_PATH`: path to the files generated running `npm run build` in vizarr source folder;
 * `BASE_PATH`: base path of fractal-vizarr-viewer application;
 * `AUTHORIZATION_SCHEME`: defines how the service verifies user authorization. The following options are available:
+  * `fractal-server-viewer-paths`: the paths that can be accessed by each user are retrieved calling fractal-server API;
   * `allowed-list`: users must be listed in a text file containing their email addresses, one per line. The path to this file must be specified using the `ALLOWED_USERS_FILE` environment variable. This is the default setting.
   * `user-folders`: each registered user can only access their own folder, which corresponds to a directory under `ZARR_DATA_BASE_PATH` named as their `slurm_user` field.
   * `none`: no authorization checks are performed, allowing access to all users, including anonymous ones. This option is useful for demonstrations and testing but should not be used in production environments.

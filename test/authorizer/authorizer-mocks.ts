@@ -1,18 +1,18 @@
 import type { Request } from 'express';
 import { Config } from '../../src/types';
 
-export function mockFetch(_: string, { headers }) {
+export function mockFetchUser(_: string, { headers }) {
   const cookie = headers['Cookie'];
   switch (cookie) {
     case 'cookie-user-1':
       return {
         ok: true,
-        json: () => ({ email: 'admin@example.com', slurm_user: 'admin' })
+        json: () => ({ email: 'admin@example.com' })
       };
     case 'cookie-user-2':
       return {
         ok: true,
-        json: () => ({ email: 'user2@example.com', slurm_user: 'user2' })
+        json: () => ({ email: 'user2@example.com' })
       };
     default:
       return {

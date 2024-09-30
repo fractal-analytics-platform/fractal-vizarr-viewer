@@ -33,15 +33,21 @@ function loadConfig(): Config {
 
   const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
   const fractalServerUrl = getRequiredEnv('FRACTAL_SERVER_URL');
-  const zarrDataBasePath = getRequiredEnv('ZARR_DATA_BASE_PATH');
   const vizarrStaticFilesPath = getRequiredEnv('VIZARR_STATIC_FILES_PATH');
 
-  const validAuthorizationSchemes = ['allowed-list', 'user-folders', 'none'];
+  const validAuthorizationSchemes = ['fractal-server-viewer-paths', 'allowed-list', 'user-folders', 'none'];
   const authorizationScheme = process.env.AUTHORIZATION_SCHEME || 'allowed-list';
   if (!validAuthorizationSchemes.includes(authorizationScheme)) {
     logger.error('Invalid authorization scheme "%s", allowed values: %s', authorizationScheme,
       validAuthorizationSchemes.map(v => `"${v}"`).join(', '));
     process.exit(1);
+  }
+
+  let zarrDataBasePath: string | null = null;
+  if (authorizationScheme !== 'fractal-server-viewer-paths') {
+    zarrDataBasePath = getRequiredEnv('ZARR_DATA_BASE_PATH');
+  } else if (process.env.ZARR_DATA_BASE_PATH) {
+    logger.warn(`ZARR_DATA_BASE_PATH will be ignored because AUTHORIZATION_SCHEME is set to fractal-server-viewer-paths`);
   }
 
   let allowedUsersFile: undefined | string = undefined;
@@ -65,7 +71,9 @@ function loadConfig(): Config {
 
   logger.debug('FRACTAL_SERVER_URL: %s', fractalServerUrl);
   logger.debug('BASE_PATH: %s', basePath);
-  logger.debug('ZARR_DATA_BASE_PATH: %s', zarrDataBasePath);
+  if (zarrDataBasePath) {
+    logger.debug('ZARR_DATA_BASE_PATH: %s', zarrDataBasePath);
+  }
   logger.debug('VIZARR_STATIC_FILES_PATH: %s', vizarrStaticFilesPath);
   logger.debug('AUTHORIZATION_SCHEME: %s', authorizationScheme);
   if (authorizationScheme === 'allowed-list') {
