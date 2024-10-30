@@ -1,6 +1,6 @@
 Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-viewer repository.
 
-# Unreleased
+# 0.2.1
 
 * Updated Vizarr git commit references and removed vizarr.patch (\#42);
 * Dropped Node 16 support (\#41);
