@@ -1,5 +1,9 @@
 Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-viewer repository.
 
+# Unreleased
+
+* Dropped Node 16 support (\#41);
+
 # 0.2.0
 
 * Supported `AUTHORIZATION_SCHEME="fractal-server-viewer-paths"` (\#35);

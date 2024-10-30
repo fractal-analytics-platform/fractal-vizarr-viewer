@@ -1,6 +1,4 @@
 import * as path from 'path';
-// Needed for node 16
-import fetch from 'node-fetch';
 import type { Request } from 'express';
 import { caching } from 'cache-manager';
 import { getConfig } from './config.js';
