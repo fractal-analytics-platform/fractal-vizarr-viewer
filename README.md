@@ -186,8 +186,7 @@ In order to display a proper error message related to the missing authorization 
 ```bash
 git clone https://github.com/hms-dbmi/vizarr.git
 cd vizarr
-git checkout 55845ffb658fa04ee2fb649a434c4c16c587233e
-git apply ../fractal-vizarr-viewer/vizarr.patch
+git checkout d70b0c9ab86acfcd79fd4bbb61f076bd122cb3cc
 pnpm install
 pnpm run build
 ```
