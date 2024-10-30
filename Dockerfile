@@ -4,12 +4,10 @@ RUN npm install -g pnpm
 
 WORKDIR /
 
-ADD vizarr.patch .
 RUN git clone https://github.com/hms-dbmi/vizarr.git
 WORKDIR /vizarr
 
-RUN git checkout 55845ffb658fa04ee2fb649a434c4c16c587233e
-RUN git apply ../vizarr.patch
+RUN git checkout d70b0c9ab86acfcd79fd4bbb61f076bd122cb3cc
 RUN pnpm install
 RUN pnpm run build
 

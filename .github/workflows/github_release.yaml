@@ -32,12 +32,7 @@ jobs:
       - name: Checkout vizarr commit
         run: |
           cd vizarr
-          git checkout 55845ffb658fa04ee2fb649a434c4c16c587233e
-
-      - name: Apply patch
-        run: |
-          cd vizarr
-          git apply ../vizarr.patch
+          git checkout d70b0c9ab86acfcd79fd4bbb61f076bd122cb3cc
 
       - name: Install dependencies
         run: |
