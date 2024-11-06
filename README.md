@@ -61,8 +61,9 @@ To start the application installed in this way see the section [Run fractal-viza
 * `VIZARR_STATIC_FILES_PATH`: path to the files generated running `npm run build` in vizarr source folder;
 * `BASE_PATH`: base path of fractal-vizarr-viewer application;
 * `AUTHORIZATION_SCHEME`: defines how the service verifies user authorization. The following options are available:
-  * `fractal-server-viewer-paths`: the paths that can be accessed by each user are retrieved calling fractal-server API;
+  * `fractal-server-viewer-paths`: the paths that can be accessed by each user are retrieved calling fractal-server API.
   * `user-folders`: each registered user can only access their own folder, which corresponds to a directory under `ZARR_DATA_BASE_PATH` named as their `slurm_user` field.
+  * `testing-basic-auth`: enables Basic Authentication for testing purposes. The credentials are specified through two additional environment variables: `TESTING_USERNAME` and `TESTING_PASSWORD`. This option should not be used in production environments.
   * `none`: no authorization checks are performed, allowing access to all users, including anonymous ones. This option is useful for demonstrations and testing but should not be used in production environments.
 * `CACHE_EXPIRATION_TIME`: cookie cache TTL in seconds; when user info is retrieved from a cookie calling the current user endpoint on fractal-server the information is cached for the specified amount of seconds, to reduce the number of calls to fractal-server;
 * `LOG_LEVEL_CONSOLE`: the log level of logs that will be written to the console; the default value is `info`;
@@ -199,21 +200,21 @@ Then go back to fractal-vizarr-viewer folder and run `npm run start` to start th
 
 ## Docker setup
 
-Build the docker image:
+The following script can be used to build and start a docker image for testing:
 
 ```sh
-docker build . -t fractal-vizarr-viewer
-```
+#!/bin/sh
 
-The following command can be used to start the docker image for testing:
+COMMIT_HASH=$(git rev-parse HEAD)
+IMAGE_NAME="fractal-vizarr-viewer-$COMMIT_HASH"
 
-```sh
+docker build . -t "$IMAGE_NAME"
+
 docker run --network host \
-  -v /path/to/zarr-files:/zarr-files \
-  -e ZARR_DATA_BASE_PATH=/zarr-files \
+  -v /tmp/zarr-files:/zarr-files \
   -e FRACTAL_SERVER_URL=http://localhost:8000 \
   -e AUTHORIZATION_SCHEME=fractal-server-viewer-paths \
-  fractal-vizarr-viewer
+  "$IMAGE_NAME"
 ```
 
 For production replace the `--network host` option with a proper published port `-p 3000:3000` and set `FRACTAL_SERVER_URL` as an URL using a public domain.
