@@ -35,6 +35,11 @@ export function getAuthorizer() {
         'Authorization scheme is set to "none": everybody will be able to access the file. Do not use in production!'
       );
       return new NoneAuthorizer();
+    case "testing-basic-auth":
+      logger.warn(
+        'Authorization scheme is set to "testing-basic-auth". Do not use in production!'
+      );
+      return new TestingBasicAuthAuthorizer();
     default:
       logger.error(
         "Unsupported authorization scheme %s",
@@ -199,5 +204,26 @@ async function getUserSettings(
     }
   } finally {
     loadingSettings = loadingSettings.filter((c) => c !== cookie);
+  }
+}
+
+export class TestingBasicAuthAuthorizer implements Authorizer {
+  async isUserValid(req: Request): Promise<boolean> {
+    const authHeader = req.get("Authorization");
+    return !!authHeader;
+  }
+
+  async isUserAuthorized(_: string, req: Request): Promise<boolean> {
+    const authHeader = req.get("Authorization")!;
+    const [scheme, credentials] = authHeader.split(" ");
+    if (scheme !== "Basic" || !credentials) {
+      return false;
+    }
+    const [username, password] = Buffer.from(credentials, "base64")
+      .toString()
+      .split(":");
+    return (
+      username === config.testingUsername && password === config.testingPassword
+    );
   }
 }
