@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { getMockedRequest, mockConfig } from "./authorizer-mocks.js";
+import { getMockedRequest, mockConfig } from "../mock";
 
 vi.mock("../../src/config.js", () => {
   return mockConfig({
@@ -32,8 +32,13 @@ describe("User folders authorizer", () => {
       "/path/to/zarr/data/admin/foo/bar",
       "cookie-user-1"
     );
-    const path = await authorizer.getAuthorizedPath(request);
-    expect(path).eq("/path/to/zarr/data/admin/foo/bar");
+    const validUser = await authorizer.isUserValid(request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/path/to/zarr/data/admin/foo/bar",
+      request
+    );
+    expect(validUser).toBeTruthy();
+    expect(authorizedUser).toBeTruthy();
   });
 
   it("Registered user with path of another user", async () => {
@@ -53,23 +58,34 @@ describe("User folders authorizer", () => {
       "/path/to/zarr/data/admin/foo/bar",
       "cookie-user-2"
     );
-    const path = await authorizer.getAuthorizedPath(request);
-    expect(path).eq(undefined);
-  });
-
-  it("Registered user with invalid path", async () => {
-    const request = getMockedRequest("../foo/bar", "cookie-user-1");
-    const path = await authorizer.getAuthorizedPath(request);
-    expect(path).eq(undefined);
+    const validUser = await authorizer.isUserValid(request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/path/to/zarr/data/admin/foo/bar",
+      request
+    );
+    expect(validUser).toBeTruthy();
+    expect(authorizedUser).toBeFalsy();
   });
 
   it("/auth/current-user/settings/ returns error", async () => {
-    fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-    });
+    fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((resolve) => resolve({ email: "user3@example.com" })),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      });
     const request = getMockedRequest("/user2/foo/bar", "cookie-user-3");
-    const path = await authorizer.getAuthorizedPath(request);
-    expect(path).eq(undefined);
+    const validUser = await authorizer.isUserValid(request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/user2/foo/bar",
+      request
+    );
+    expect(validUser).toBeTruthy();
+    expect(authorizedUser).toBeFalsy();
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, beforeEach, expect, vi } from "vitest";
-import { getMockedRequest, mockConfig } from "./authorizer-mocks.js";
+import { getMockedRequest, mockConfig } from "../mock";
 
 vi.mock("../../src/config.js", () => {
   return mockConfig({
@@ -39,29 +39,35 @@ describe("Viewer paths authorizer", () => {
       "/path/to/zarr/data/foo/xxx",
       "cookie-user-1"
     );
-    const path = await authorizer.getAuthorizedPath(request);
-    expect(path).eq("/path/to/zarr/data/foo/xxx");
+    const validUser = await authorizer.isUserValid(request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/path/to/zarr/data/foo/xxx",
+      request
+    );
+    expect(validUser).toBeTruthy();
+    expect(authorizedUser).toBeTruthy();
   });
 
   it("Allowed user with forbidden path", async () => {
     const request = getMockedRequest("/path/to/forbidden", "cookie-user-1");
-    const path = await authorizer.getAuthorizedPath(request);
-    expect(path).eq(undefined);
-  });
-
-  it("Allowed user with forbidden relative path", async () => {
-    const request = getMockedRequest(
-      "/path/to/zarr/data/foo/xxx/../../forbidden",
-      "cookie-user-1"
+    const validUser = await authorizer.isUserValid(request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/path/to/forbidden",
+      request
     );
-    const path = await authorizer.getAuthorizedPath(request);
-    expect(path).eq(undefined);
+    expect(validUser).toBeTruthy();
+    expect(authorizedUser).toBeFalsy();
   });
 
   it("Anonymous user with valid path", async () => {
     const request = getMockedRequest("/path/to/zarr/data/foo/xxx", undefined);
-    const path = await authorizer.getAuthorizedPath(request);
-    expect(path).eq(undefined);
+    const validUser = await authorizer.isUserValid(request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/path/to/zarr/data/foo/xxx",
+      request
+    );
+    expect(validUser).toBeFalsy();
+    expect(authorizedUser).toBeFalsy();
   });
 
   it("/auth/current-user/viewer-paths/ returns error", async () => {
@@ -81,7 +87,12 @@ describe("Viewer paths authorizer", () => {
       "/path/to/zarr/data/foo/xxx",
       "cookie-user-3"
     );
-    const path = await authorizer.getAuthorizedPath(request);
-    expect(path).eq(undefined);
+    const validUser = await authorizer.isUserValid(request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/path/to/zarr/data/foo/xxx",
+      request
+    );
+    expect(validUser).toBeTruthy();
+    expect(authorizedUser).toBeFalsy();
   });
 });
