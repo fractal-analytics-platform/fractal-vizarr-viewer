@@ -19,13 +19,21 @@ describe("Viewer paths authorizer", () => {
     fetch.mockClear();
   });
 
-  it("Allowed user with valid path", async () => {
+  it("Allowed user with valid path in zarr directory list", async () => {
     fetch
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: () =>
           new Promise((resolve) => resolve({ email: "admin@example.com" })),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((resolve) =>
+            resolve({ project_dir: "/path/to/project" })
+          ),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -42,6 +50,38 @@ describe("Viewer paths authorizer", () => {
     const validUser = await authorizer.isUserValid(request);
     const authorizedUser = await authorizer.isUserAuthorized(
       "/path/to/zarr/data/foo/xxx",
+      request
+    );
+    expect(validUser).toBeTruthy();
+    expect(authorizedUser).toBeTruthy();
+  });
+
+  it("Allowed user with valid path in zarr project dir", async () => {
+    fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((resolve) => resolve({ email: "user2@example.com" })),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((resolve) =>
+            resolve({ project_dir: "/path/to/project" })
+          ),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((resolve) => resolve(["/path/to/zarr/data/bar"])),
+      });
+    const request = getMockedRequest("/path/to/project/xxx", "cookie-user-2");
+    const validUser = await authorizer.isUserValid(request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/path/to/project/xxx",
       request
     );
     expect(validUser).toBeTruthy();
@@ -77,6 +117,11 @@ describe("Viewer paths authorizer", () => {
         status: 200,
         json: () =>
           new Promise((resolve) => resolve({ email: "user3@example.com" })),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => new Promise((resolve) => resolve({ project_dir: null })),
       })
       .mockResolvedValueOnce({
         ok: false,

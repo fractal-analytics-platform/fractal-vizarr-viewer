@@ -3,7 +3,7 @@ import type { Request } from "express";
 import { caching } from "cache-manager";
 import { getConfig } from "./config.js";
 import { getLogger } from "./logger.js";
-import { UserSettings } from "./types";
+import { User, UserSettings } from "./types";
 import { getUserFromCookie } from "./user.js";
 import { isSubfolder } from "./path.js";
 
@@ -78,40 +78,9 @@ export class UserFoldersAuthorizer implements Authorizer {
     if (!user || !cookie) {
       return false;
     }
-    while (loadingSettings.includes(cookie)) {
-      // a fetch call for this cookie is in progress; wait for its completion
-      await new Promise((r) => setTimeout(r));
-    }
-    loadingSettings.push(cookie);
-    let settings: UserSettings | undefined = undefined;
-    try {
-      const value: string | undefined = await settingsCache.get(cookie);
-      if (value) {
-        settings = JSON.parse(value) as UserSettings;
-      } else {
-        logger.trace("Retrieving settings from cookie");
-        const response = await fetch(
-          `${config.fractalServerUrl}/auth/current-user/settings/`,
-          {
-            headers: {
-              Cookie: cookie,
-            },
-          }
-        );
-        if (response.ok) {
-          settings = (await response.json()) as UserSettings;
-          logger.trace("Retrieved settings for user %s", user.email);
-          settingsCache.set(cookie, JSON.stringify(settings));
-        } else {
-          logger.debug(
-            "Fractal server replied with %d while retrieving settings from cookie",
-            response.status
-          );
-          return false;
-        }
-      }
-    } finally {
-      loadingSettings = loadingSettings.filter((c) => c !== cookie);
+    const settings = await getUserSettings(user, cookie);
+    if (!settings) {
+      return false;
     }
     const username = settings.slurm_user;
     if (!username) {
@@ -138,6 +107,7 @@ export class ViewerPathsAuthorizer implements Authorizer {
     if (!user || !cookie) {
       return false;
     }
+    const settings = await getUserSettings(user, cookie);
     while (loadingViewerPaths.includes(cookie)) {
       // a fetch call for this cookie is in progress; wait for its completion
       await new Promise((r) => setTimeout(r));
@@ -174,8 +144,12 @@ export class ViewerPathsAuthorizer implements Authorizer {
           return false;
         }
       }
-      for (const viewerPath of viewerPaths) {
-        if (path.resolve(completePath).startsWith(viewerPath)) {
+      const allowedPaths =
+        settings && settings.project_dir
+          ? [settings.project_dir, ...viewerPaths]
+          : viewerPaths;
+      for (const allowedPath of allowedPaths) {
+        if (path.resolve(completePath).startsWith(allowedPath)) {
           return true;
         }
       }
@@ -184,5 +158,46 @@ export class ViewerPathsAuthorizer implements Authorizer {
     } finally {
       loadingViewerPaths = loadingViewerPaths.filter((c) => c !== cookie);
     }
+  }
+}
+
+async function getUserSettings(
+  user: User,
+  cookie: string
+): Promise<UserSettings | undefined> {
+  while (loadingSettings.includes(cookie)) {
+    // a fetch call for this cookie is in progress; wait for its completion
+    await new Promise((r) => setTimeout(r));
+  }
+  loadingSettings.push(cookie);
+  try {
+    const value: string | undefined = await settingsCache.get(cookie);
+    if (value) {
+      return JSON.parse(value) as UserSettings;
+    } else {
+      logger.trace("Retrieving settings from cookie");
+      const response = await fetch(
+        `${config.fractalServerUrl}/auth/current-user/settings/`,
+        {
+          headers: {
+            Cookie: cookie,
+          },
+        }
+      );
+      if (response.ok) {
+        const settings = (await response.json()) as UserSettings;
+        logger.trace("Retrieved settings for user %s", user.email);
+        settingsCache.set(cookie, JSON.stringify(settings));
+        return settings;
+      } else {
+        logger.debug(
+          "Fractal server replied with %d while retrieving settings from cookie",
+          response.status
+        );
+        return undefined;
+      }
+    }
+  } finally {
+    loadingSettings = loadingSettings.filter((c) => c !== cookie);
   }
 }
