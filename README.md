@@ -200,20 +200,21 @@ Then go back to fractal-vizarr-viewer folder and run `npm run start` to start th
 
 ## Docker setup
 
-Build the docker image:
+The following script can be used to build and start a docker image for testing:
 
 ```sh
-docker build . -t fractal-vizarr-viewer
-```
+#!/bin/sh
 
-The following command can be used to start the docker image for testing:
+COMMIT_HASH=$(git rev-parse HEAD)
+IMAGE_NAME="fractal-vizarr-viewer-$COMMIT_HASH"
 
-```sh
+docker build . -t "$IMAGE_NAME"
+
 docker run --network host \
-  -v /path/to/zarr-files:/zarr-files \
+  -v /tmp/zarr-files:/zarr-files \
   -e FRACTAL_SERVER_URL=http://localhost:8000 \
   -e AUTHORIZATION_SCHEME=fractal-server-viewer-paths \
-  fractal-vizarr-viewer
+  "$IMAGE_NAME"
 ```
 
 For production replace the `--network host` option with a proper published port `-p 3000:3000` and set `FRACTAL_SERVER_URL` as an URL using a public domain.
