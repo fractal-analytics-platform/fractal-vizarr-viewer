@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getMockedRequest, mockConfig } from "../mock";
 
 vi.mock("../../src/config.js", () => {
@@ -15,7 +15,11 @@ import { getAuthorizer } from "../../src/authorizer.js";
 const authorizer = getAuthorizer();
 
 describe("User folders authorizer", () => {
-  it("Registered user1 with valid absolute path", async () => {
+  beforeEach(() => {
+    fetch.mockClear();
+  });
+
+  it("Registered user with valid absolute path based on slurm_user", async () => {
     fetch
       .mockResolvedValueOnce({
         ok: true,
@@ -26,15 +30,53 @@ describe("User folders authorizer", () => {
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => new Promise((resolve) => resolve({ slurm_user: "admin" })),
+        json: () =>
+          new Promise((resolve) =>
+            resolve({
+              slurm_user: "admin",
+              project_dir: "/path/to/project",
+            })
+          ),
       });
     const request = getMockedRequest(
       "/path/to/zarr/data/admin/foo/bar",
-      "cookie-user-1"
+      "cookie-admin-1"
     );
     const validUser = await authorizer.isUserValid(request);
     const authorizedUser = await authorizer.isUserAuthorized(
       "/path/to/zarr/data/admin/foo/bar",
+      request
+    );
+    expect(validUser).toBeTruthy();
+    expect(authorizedUser).toBeTruthy();
+  });
+
+  it("Registered user with valid absolute path based on project_dir", async () => {
+    fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((resolve) => resolve({ email: "admin@example.com" })),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((resolve) =>
+            resolve({
+              slurm_user: "admin",
+              project_dir: "/path/to/project",
+            })
+          ),
+      });
+    const request = getMockedRequest(
+      "/path/to/project/foo/bar",
+      "cookie-admin-2"
+    );
+    const validUser = await authorizer.isUserValid(request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/path/to/project/foo/bar",
       request
     );
     expect(validUser).toBeTruthy();
@@ -83,6 +125,32 @@ describe("User folders authorizer", () => {
     const validUser = await authorizer.isUserValid(request);
     const authorizedUser = await authorizer.isUserAuthorized(
       "/user2/foo/bar",
+      request
+    );
+    expect(validUser).toBeTruthy();
+    expect(authorizedUser).toBeFalsy();
+  });
+
+  it("Registered user without slurm_user", async () => {
+    fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((resolve) => resolve({ email: "user4@example.com" })),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => new Promise((resolve) => resolve({ slurm_user: null })),
+      });
+    const request = getMockedRequest(
+      "/path/to/zarr/data/user4/foo/bar",
+      "cookie-user-4"
+    );
+    const validUser = await authorizer.isUserValid(request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/path/to/zarr/data/user4/foo/bar",
       request
     );
     expect(validUser).toBeTruthy();
