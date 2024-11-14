@@ -14,11 +14,7 @@ export async function serveZarrData(
   res: Response
 ) {
   try {
-    const completePath = getValidPath(req, config);
-    if (!completePath) {
-      logger.info("Invalid path: %s", req.path.normalize());
-      return res.status(404).send("Not Found").end();
-    }
+    const completePath = getValidPath(req);
     const validUser = await authorizer.isUserValid(req);
     if (!validUser) {
       logger.info("Unauthorized request: %s", req.path.normalize());
