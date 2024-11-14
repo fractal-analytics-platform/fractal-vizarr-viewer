@@ -7,6 +7,7 @@ vi.mock("../../src/config.js", () => {
     authorizationScheme: "testing-basic-auth",
     testingUsername: "test",
     testingPassword: "password",
+    zarrDataBasePath: "/valid",
   });
 });
 
@@ -27,7 +28,10 @@ describe("Testing basic auth authorizer", () => {
   it("Invalid authorization header", async () => {
     const request = mockAuthHeader("foo");
     const validUser = await authorizer.isUserValid(request);
-    const authorizedUser = await authorizer.isUserAuthorized("", request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/valid/path",
+      request
+    );
     expect(validUser).toBeTruthy();
     expect(authorizedUser).toBeFalsy();
   });
@@ -35,7 +39,10 @@ describe("Testing basic auth authorizer", () => {
   it("Non Basic authorization header", async () => {
     const request = mockAuthHeader("Bearer token");
     const validUser = await authorizer.isUserValid(request);
-    const authorizedUser = await authorizer.isUserAuthorized("", request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/valid/path",
+      request
+    );
     expect(validUser).toBeTruthy();
     expect(authorizedUser).toBeFalsy();
   });
@@ -43,7 +50,10 @@ describe("Testing basic auth authorizer", () => {
   it("Basic authorization header with bad password format", async () => {
     const request = mockAuthHeader("Basic not-base-64");
     const validUser = await authorizer.isUserValid(request);
-    const authorizedUser = await authorizer.isUserAuthorized("", request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/valid/path",
+      request
+    );
     expect(validUser).toBeTruthy();
     expect(authorizedUser).toBeFalsy();
   });
@@ -51,17 +61,34 @@ describe("Testing basic auth authorizer", () => {
   it("Basic authorization header with invalid password", async () => {
     const request = mockAuthHeader("Basic Zm9vOmJhcg==");
     const validUser = await authorizer.isUserValid(request);
-    const authorizedUser = await authorizer.isUserAuthorized("", request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/valid/path",
+      request
+    );
     expect(validUser).toBeTruthy();
     expect(authorizedUser).toBeFalsy();
   });
 
-  it("Basic authorization header with valid password", async () => {
+  it("Basic authorization header with valid password and valid path", async () => {
     const request = mockAuthHeader("Basic dGVzdDpwYXNzd29yZA==");
     const validUser = await authorizer.isUserValid(request);
-    const authorizedUser = await authorizer.isUserAuthorized("", request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/valid/path",
+      request
+    );
     expect(validUser).toBeTruthy();
     expect(authorizedUser).toBeTruthy();
+  });
+
+  it("Basic authorization header with valid password but invalid path", async () => {
+    const request = mockAuthHeader("Basic dGVzdDpwYXNzd29yZA==");
+    const validUser = await authorizer.isUserValid(request);
+    const authorizedUser = await authorizer.isUserAuthorized(
+      "/invalid/path",
+      request
+    );
+    expect(validUser).toBeTruthy();
+    expect(authorizedUser).toBeFalsy();
   });
 });
 

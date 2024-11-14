@@ -1,5 +1,9 @@
 Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-viewer repository.
 
+# Unreleased
+
+* Allowed `project_dir` outside `ZARR_DATA_BASE_PATH` (\#50);
+
 # 0.2.3
 
 * Checked `project_dir` also in `user-folders` authorizer (\#49);

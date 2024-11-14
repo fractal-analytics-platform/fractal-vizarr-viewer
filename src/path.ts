@@ -1,20 +1,11 @@
 import * as path from 'path';
 import type { Request } from 'express';
 import { getLogger } from './logger.js';
-import { Config } from './types';
 
 const logger = getLogger();
 
-export function getValidPath(req: Request, config: Config): string | undefined {
-  const requestPath = decodeURIComponent(req.path).normalize();
-  if (!config.zarrDataBasePath) {
-    return requestPath;
-  }
-  // Ensure that the selected path is a subfolder of the base data folder
-  if (isSubfolder(config.zarrDataBasePath, requestPath)) {
-    return requestPath;
-  }
-  return undefined;
+export function getValidPath(req: Request): string {
+  return decodeURIComponent(req.path).normalize();
 }
 
 /**

@@ -66,8 +66,8 @@ export class NoneAuthorizer implements Authorizer {
     return true;
   }
 
-  async isUserAuthorized(): Promise<boolean> {
-    return true;
+  async isUserAuthorized(completePath: string): Promise<boolean> {
+    return isSubfolder(config.zarrDataBasePath!, completePath);
   }
 }
 
@@ -219,7 +219,7 @@ export class TestingBasicAuthAuthorizer implements Authorizer {
     return !!authHeader;
   }
 
-  async isUserAuthorized(_: string, req: Request): Promise<boolean> {
+  async isUserAuthorized(completePath: string, req: Request): Promise<boolean> {
     const authHeader = req.get("Authorization")!;
     const [scheme, credentials] = authHeader.split(" ");
     if (scheme !== "Basic" || !credentials) {
@@ -228,8 +228,12 @@ export class TestingBasicAuthAuthorizer implements Authorizer {
     const [username, password] = Buffer.from(credentials, "base64")
       .toString()
       .split(":");
-    return (
-      username === config.testingUsername && password === config.testingPassword
-    );
+    if (
+      username !== config.testingUsername ||
+      password !== config.testingPassword
+    ) {
+      return false;
+    }
+    return isSubfolder(config.zarrDataBasePath!, completePath);
   }
 }
