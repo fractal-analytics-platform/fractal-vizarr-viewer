@@ -1,5 +1,9 @@
 Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-viewer repository.
 
+# Unreleased
+
+* Checked `project_dir` also in `user-folders` authorizer (\#49);
+
 # 0.2.2
 
 * Distinguished handling of 401 Unauthorized and 403 Forbidden responses (\#47);

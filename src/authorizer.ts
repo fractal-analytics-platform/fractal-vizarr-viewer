@@ -87,16 +87,22 @@ export class UserFoldersAuthorizer implements Authorizer {
     if (!settings) {
       return false;
     }
+
+    if (
+      settings.project_dir &&
+      isSubfolder(settings.project_dir, completePath)
+    ) {
+      return true;
+    }
+
     const username = settings.slurm_user;
     if (!username) {
       logger.warn('Slurm user is not defined for "%s"', user.email);
       return false;
     }
+
     const userPath = path.join(config.zarrDataBasePath!, username);
-    if (!isSubfolder(config.zarrDataBasePath!, userPath)) {
-      return false;
-    }
-    return completePath.startsWith(userPath);
+    return isSubfolder(userPath, completePath);
   }
 }
 
@@ -154,7 +160,7 @@ export class ViewerPathsAuthorizer implements Authorizer {
           ? [settings.project_dir, ...viewerPaths]
           : viewerPaths;
       for (const allowedPath of allowedPaths) {
-        if (path.resolve(completePath).startsWith(allowedPath)) {
+        if (isSubfolder(allowedPath, completePath)) {
           return true;
         }
       }
