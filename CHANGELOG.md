@@ -1,5 +1,12 @@
 Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-viewer repository.
 
+# Unreleased
+
+* Retrieved complete list of allowed viewer paths directly from fractal-server: (\#53);
+    * removed `user-folders` and `fractal-server-viewer-paths` authorization schemes;
+    * added `fractal-server` authorization scheme;
+* Supported both tokens and cookies (\#53);
+
 # 0.2.4
 
 * Allowed `project_dir` outside `ZARR_DATA_BASE_PATH` (\#50);

@@ -80,7 +80,6 @@ function getUserTokenFromRequest(req: Request): string | undefined {
   if (!match) {
     return undefined;
   }
-  console.log('match', match[1])
   return match[1];
 }
 
