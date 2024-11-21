@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getMockedRequest } from "./mock";
+import { getAnonymousMockedRequest } from "./mock";
 import { getValidPath, isSubfolder } from "../src/path";
 
 describe("Path utilities", () => {
@@ -9,8 +9,8 @@ describe("Path utilities", () => {
     expect(isSubfolder("/path/to/parent", "/path/to/parent/../other")).toBeFalsy();
   });
 
-  it("valid path with URL encoded characters - no zarrDataBasePath", async () => {
-    const request = getMockedRequest("/path/to/bar%23baz");
+  it("valid path with URL encoded characters", async () => {
+    const request = getAnonymousMockedRequest("/path/to/bar%23baz");
     const path = getValidPath(request);
     expect(path).toEqual("/path/to/bar#baz");
   });

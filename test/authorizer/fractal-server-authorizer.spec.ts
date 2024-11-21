@@ -1,5 +1,10 @@
 import { describe, it, beforeEach, expect, vi } from "vitest";
-import { getMockedRequest, mockConfig } from "../mock";
+import {
+  getMockedRequestWithToken,
+  getMockedRequestWithCookie,
+  mockConfig,
+  getAnonymousMockedRequest,
+} from "../mock";
 
 vi.mock("../../src/config.js", () => {
   return mockConfig({
@@ -39,9 +44,9 @@ describe("Viewer paths authorizer", () => {
             ])
           ),
       });
-    const request = getMockedRequest(
+    const request = getMockedRequestWithCookie(
       "/path/to/zarr/data/foo/xxx",
-      "cookie-user-1"
+      "token-user-1"
     );
     const validUser = await authorizer.isUserValid(request);
     const authorizedUser = await authorizer.isUserAuthorized(
@@ -68,7 +73,10 @@ describe("Viewer paths authorizer", () => {
             resolve(["/path/to/project", "/path/to/zarr/data/bar"])
           ),
       });
-    const request = getMockedRequest("/path/to/project/xxx", "cookie-user-2");
+    const request = getMockedRequestWithToken(
+      "/path/to/project/xxx",
+      "token-user-2"
+    );
     const validUser = await authorizer.isUserValid(request);
     const authorizedUser = await authorizer.isUserAuthorized(
       "/path/to/project/xxx",
@@ -79,7 +87,10 @@ describe("Viewer paths authorizer", () => {
   });
 
   it("Allowed user with forbidden path", async () => {
-    const request = getMockedRequest("/path/to/forbidden", "cookie-user-1");
+    const request = getMockedRequestWithToken(
+      "/path/to/forbidden",
+      "token-user-1"
+    );
     const validUser = await authorizer.isUserValid(request);
     const authorizedUser = await authorizer.isUserAuthorized(
       "/path/to/forbidden",
@@ -90,7 +101,7 @@ describe("Viewer paths authorizer", () => {
   });
 
   it("Anonymous user with valid path", async () => {
-    const request = getMockedRequest("/path/to/zarr/data/foo/xxx", undefined);
+    const request = getAnonymousMockedRequest("/path/to/zarr/data/foo/xxx");
     const validUser = await authorizer.isUserValid(request);
     const authorizedUser = await authorizer.isUserAuthorized(
       "/path/to/zarr/data/foo/xxx",
@@ -113,9 +124,9 @@ describe("Viewer paths authorizer", () => {
         status: 400,
         json: () => new Promise((resolve) => resolve({ detail: "error" })),
       });
-    const request = getMockedRequest(
+    const request = getMockedRequestWithCookie(
       "/path/to/zarr/data/foo/xxx",
-      "cookie-user-3"
+      "token-user-3"
     );
     const validUser = await authorizer.isUserValid(request);
     const authorizedUser = await authorizer.isUserAuthorized(

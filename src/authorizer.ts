@@ -2,7 +2,7 @@ import type { Request } from "express";
 import { caching } from "cache-manager";
 import { getConfig } from "./config.js";
 import { getLogger } from "./logger.js";
-import { getUserFromCookie } from "./user.js";
+import { getUserFromRequest } from "./user.js";
 import { isSubfolder } from "./path.js";
 
 const config = getConfig();
@@ -13,7 +13,7 @@ const ttl = config.cacheExpirationTime * 1000;
 
 const viewerPathsCache = await caching("memory", { ttl });
 
-// Track the cookies for which we are retrieving the user info from fractal-server
+// Track the tokens for which we are retrieving the user info from fractal-server
 // Used to avoid querying the cache while the fetch call is in progress
 let loadingViewerPaths: string[] = [];
 
@@ -67,24 +67,24 @@ export class NoneAuthorizer implements Authorizer {
 
 export class FractalServerAuthorizer implements Authorizer {
   async isUserValid(req: Request): Promise<boolean> {
-    const user = await getUserFromCookie(req.get("Cookie"));
+    const user = await getUserFromRequest(req);
     return !!user;
   }
 
   async isUserAuthorized(completePath: string, req: Request): Promise<boolean> {
-    const cookie = req.get("Cookie");
-    const user = await getUserFromCookie(cookie);
-    if (!user || !cookie) {
+    const userData = await getUserFromRequest(req);
+    if (!userData) {
       return false;
     }
-    while (loadingViewerPaths.includes(cookie)) {
-      // a fetch call for this cookie is in progress; wait for its completion
+    const { user, token } = userData;
+    while (loadingViewerPaths.includes(token)) {
+      // a fetch call for this token is in progress; wait for its completion
       await new Promise((r) => setTimeout(r));
     }
-    loadingViewerPaths.push(cookie);
+    loadingViewerPaths.push(token);
     try {
       let allowedPaths: string[] | undefined = await viewerPathsCache.get(
-        cookie
+        token
       );
       if (allowedPaths === undefined) {
         logger.trace("Retrieving allowed viewer paths for user %s", user.email);
@@ -92,7 +92,7 @@ export class FractalServerAuthorizer implements Authorizer {
           `${config.fractalServerUrl}/auth/current-user/allowed-viewer-paths/`,
           {
             headers: {
-              Cookie: cookie,
+              Authorization: `Bearer ${token}`,
             },
           }
         );
@@ -103,7 +103,7 @@ export class FractalServerAuthorizer implements Authorizer {
             allowedPaths.length,
             user.email
           );
-          viewerPathsCache.set(cookie, allowedPaths);
+          viewerPathsCache.set(token, allowedPaths);
         } else {
           logger.debug(
             "Fractal server replied with %d while retrieving allowed viewer paths for user %s",
@@ -121,7 +121,7 @@ export class FractalServerAuthorizer implements Authorizer {
       logger.trace("Unauthorized path %s", completePath);
       return false;
     } finally {
-      loadingViewerPaths = loadingViewerPaths.filter((c) => c !== cookie);
+      loadingViewerPaths = loadingViewerPaths.filter((c) => c !== token);
     }
   }
 }
