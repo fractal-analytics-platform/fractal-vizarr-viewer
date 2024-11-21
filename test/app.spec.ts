@@ -6,20 +6,15 @@ import path from "path";
 
 vi.mock("../src/config.js", () => {
   return mockConfig({
-    authorizationScheme: "user-folders",
-    zarrDataBasePath: fs.mkdtempSync(
-      path.join(os.tmpdir(), "fractal-vizarr-app-test")
-    ),
+    authorizationScheme: "fractal-server",
   });
 });
 
 import { serveZarrData } from "../src/data";
 import { Authorizer } from "../src/authorizer";
-import { getConfig } from "../src/config";
 
 describe("Serving vizarr data", () => {
-  const config = getConfig();
-  const tmpDir = config.zarrDataBasePath!;
+  const tmpDir = path.join(os.tmpdir(), "fractal-vizarr-app-test");
 
   beforeAll(() => {
     // Create test files

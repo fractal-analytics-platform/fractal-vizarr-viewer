@@ -3,8 +3,7 @@ import { getMockedRequest, mockConfig } from "../mock";
 
 vi.mock("../../src/config.js", () => {
   return mockConfig({
-    authorizationScheme: "none",
-    zarrDataBasePath: "/valid",
+    authorizationScheme: "none"
   });
 });
 
@@ -35,6 +34,6 @@ describe("None authorizer", () => {
       request
     );
     expect(validUser).toBeTruthy();
-    expect(authorizedUser).toBeFalsy();
+    expect(authorizedUser).toBeTruthy();
   });
 });

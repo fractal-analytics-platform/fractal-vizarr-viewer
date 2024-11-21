@@ -6,8 +6,7 @@ vi.mock("../../src/config.js", () => {
   return mockConfig({
     authorizationScheme: "testing-basic-auth",
     testingUsername: "test",
-    testingPassword: "password",
-    zarrDataBasePath: "/valid",
+    testingPassword: "password"
   });
 });
 
@@ -78,17 +77,6 @@ describe("Testing basic auth authorizer", () => {
     );
     expect(validUser).toBeTruthy();
     expect(authorizedUser).toBeTruthy();
-  });
-
-  it("Basic authorization header with valid password but invalid path", async () => {
-    const request = mockAuthHeader("Basic dGVzdDpwYXNzd29yZA==");
-    const validUser = await authorizer.isUserValid(request);
-    const authorizedUser = await authorizer.isUserAuthorized(
-      "/invalid/path",
-      request
-    );
-    expect(validUser).toBeTruthy();
-    expect(authorizedUser).toBeFalsy();
   });
 });
 
