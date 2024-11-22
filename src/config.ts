@@ -28,8 +28,7 @@ function loadConfig(): Config {
   const vizarrStaticFilesPath = getRequiredEnv("VIZARR_STATIC_FILES_PATH");
 
   const validAuthorizationSchemes = [
-    "fractal-server-viewer-paths",
-    "user-folders",
+    "fractal-server",
     "testing-basic-auth",
     "none",
   ];
@@ -39,16 +38,6 @@ function loadConfig(): Config {
       'Invalid authorization scheme "%s", allowed values: %s',
       authorizationScheme,
       validAuthorizationSchemes.map((v) => `"${v}"`).join(", ")
-    );
-    process.exit(1);
-  }
-
-  let zarrDataBasePath: string | null = null;
-  if (authorizationScheme !== "fractal-server-viewer-paths") {
-    zarrDataBasePath = getRequiredEnv("ZARR_DATA_BASE_PATH");
-  } else if (process.env.ZARR_DATA_BASE_PATH) {
-    logger.error(
-      `ZARR_DATA_BASE_PATH will be ignored because AUTHORIZATION_SCHEME is set to fractal-server-viewer-paths`
     );
     process.exit(1);
   }
@@ -72,9 +61,6 @@ function loadConfig(): Config {
 
   logger.debug("FRACTAL_SERVER_URL: %s", fractalServerUrl);
   logger.debug("BASE_PATH: %s", basePath);
-  if (zarrDataBasePath) {
-    logger.debug("ZARR_DATA_BASE_PATH: %s", zarrDataBasePath);
-  }
   logger.debug("VIZARR_STATIC_FILES_PATH: %s", vizarrStaticFilesPath);
   logger.debug("AUTHORIZATION_SCHEME: %s", authorizationScheme);
   logger.debug("CACHE_EXPIRATION_TIME: %d", cacheExpirationTime);
@@ -83,7 +69,6 @@ function loadConfig(): Config {
     port,
     fractalServerUrl,
     basePath,
-    zarrDataBasePath,
     vizarrStaticFilesPath,
     authorizationScheme: authorizationScheme as AuthorizationScheme,
     cacheExpirationTime,

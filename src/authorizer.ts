@@ -1,10 +1,8 @@
-import * as path from "path";
 import type { Request } from "express";
 import { caching } from "cache-manager";
 import { getConfig } from "./config.js";
 import { getLogger } from "./logger.js";
-import { User, UserSettings } from "./types";
-import { getUserFromCookie } from "./user.js";
+import { getUserFromRequest } from "./user.js";
 import { isSubfolder } from "./path.js";
 
 const config = getConfig();
@@ -13,12 +11,10 @@ const logger = getLogger();
 // cache TTL in milliseconds
 const ttl = config.cacheExpirationTime * 1000;
 
-const settingsCache = await caching("memory", { ttl });
 const viewerPathsCache = await caching("memory", { ttl });
 
-// Track the cookies for which we are retrieving the user info from fractal-server
+// Track the tokens for which we are retrieving the user info from fractal-server
 // Used to avoid querying the cache while the fetch call is in progress
-let loadingSettings: string[] = [];
 let loadingViewerPaths: string[] = [];
 
 /**
@@ -26,10 +22,8 @@ let loadingViewerPaths: string[] = [];
  */
 export function getAuthorizer() {
   switch (config.authorizationScheme) {
-    case "fractal-server-viewer-paths":
-      return new ViewerPathsAuthorizer();
-    case "user-folders":
-      return new UserFoldersAuthorizer();
+    case "fractal-server":
+      return new FractalServerAuthorizer();
     case "none":
       logger.warn(
         'Authorization scheme is set to "none": everybody will be able to access the file. Do not use in production!'
@@ -66,99 +60,59 @@ export class NoneAuthorizer implements Authorizer {
     return true;
   }
 
-  async isUserAuthorized(completePath: string): Promise<boolean> {
-    return isSubfolder(config.zarrDataBasePath!, completePath);
+  async isUserAuthorized(): Promise<boolean> {
+    return true;
   }
 }
 
-export class UserFoldersAuthorizer implements Authorizer {
+export class FractalServerAuthorizer implements Authorizer {
   async isUserValid(req: Request): Promise<boolean> {
-    const user = await getUserFromCookie(req.get("Cookie"));
+    const user = await getUserFromRequest(req);
     return !!user;
   }
 
   async isUserAuthorized(completePath: string, req: Request): Promise<boolean> {
-    const cookie = req.get("Cookie");
-    const user = await getUserFromCookie(cookie);
-    if (!user || !cookie) {
+    const userData = await getUserFromRequest(req);
+    if (!userData) {
       return false;
     }
-    const settings = await getUserSettings(user, cookie);
-    if (!settings) {
-      return false;
-    }
-
-    if (
-      settings.project_dir &&
-      isSubfolder(settings.project_dir, completePath)
-    ) {
-      return true;
-    }
-
-    const username = settings.slurm_user;
-    if (!username) {
-      logger.warn('Slurm user is not defined for "%s"', user.email);
-      return false;
-    }
-
-    const userPath = path.join(config.zarrDataBasePath!, username);
-    return isSubfolder(userPath, completePath);
-  }
-}
-
-export class ViewerPathsAuthorizer implements Authorizer {
-  async isUserValid(req: Request): Promise<boolean> {
-    const user = await getUserFromCookie(req.get("Cookie"));
-    return !!user;
-  }
-
-  async isUserAuthorized(completePath: string, req: Request): Promise<boolean> {
-    const cookie = req.get("Cookie");
-    const user = await getUserFromCookie(cookie);
-    if (!user || !cookie) {
-      return false;
-    }
-    const settings = await getUserSettings(user, cookie);
-    while (loadingViewerPaths.includes(cookie)) {
-      // a fetch call for this cookie is in progress; wait for its completion
+    const { user, token } = userData;
+    while (loadingViewerPaths.includes(token)) {
+      // a fetch call for this token is in progress; wait for its completion
       await new Promise((r) => setTimeout(r));
     }
-    loadingViewerPaths.push(cookie);
+    loadingViewerPaths.push(token);
     try {
-      let viewerPaths: string[] | undefined = await viewerPathsCache.get(
-        cookie
+      let allowedPaths: string[] | undefined = await viewerPathsCache.get(
+        token
       );
-      if (viewerPaths === undefined) {
-        logger.trace("Retrieving viewer paths for user %s", user.email);
+      if (allowedPaths === undefined) {
+        logger.trace("Retrieving allowed viewer paths for user %s", user.email);
         const response = await fetch(
-          `${config.fractalServerUrl}/auth/current-user/viewer-paths/`,
+          `${config.fractalServerUrl}/auth/current-user/allowed-viewer-paths/`,
           {
             headers: {
-              Cookie: cookie,
+              Authorization: `Bearer ${token}`,
             },
           }
         );
         if (response.ok) {
-          viewerPaths = (await response.json()) as string[];
+          allowedPaths = (await response.json()) as string[];
           logger.trace(
-            "Retrieved %d viewer paths for user %s",
-            viewerPaths.length,
+            "Retrieved %d allowed viewer paths for user %s",
+            allowedPaths.length,
             user.email
           );
-          viewerPathsCache.set(cookie, viewerPaths);
+          viewerPathsCache.set(token, allowedPaths);
         } else {
           logger.debug(
-            "Fractal server replied with %d while retrieving viewer paths for user %s",
+            "Fractal server replied with %d while retrieving allowed viewer paths for user %s",
             response.status,
             user.email
           );
           return false;
         }
       }
-      const allowedPaths =
-        settings && settings.project_dir
-          ? [settings.project_dir, ...viewerPaths]
-          : viewerPaths;
       for (const allowedPath of allowedPaths) {
         if (isSubfolder(allowedPath, completePath)) {
           return true;
@@ -167,49 +121,8 @@ export class ViewerPathsAuthorizer implements Authorizer {
       logger.trace("Unauthorized path %s", completePath);
       return false;
     } finally {
-      loadingViewerPaths = loadingViewerPaths.filter((c) => c !== cookie);
+      loadingViewerPaths = loadingViewerPaths.filter((c) => c !== token);
     }
-  }
-}
-
-async function getUserSettings(
-  user: User,
-  cookie: string
-): Promise<UserSettings | undefined> {
-  while (loadingSettings.includes(cookie)) {
-    // a fetch call for this cookie is in progress; wait for its completion
-    await new Promise((r) => setTimeout(r));
-  }
-  loadingSettings.push(cookie);
-  try {
-    const value: string | undefined = await settingsCache.get(cookie);
-    if (value) {
-      return JSON.parse(value) as UserSettings;
-    } else {
-      logger.trace("Retrieving settings from cookie");
-      const response = await fetch(
-        `${config.fractalServerUrl}/auth/current-user/settings/`,
-        {
-          headers: {
-            Cookie: cookie,
-          },
-        }
-      );
-      if (response.ok) {
-        const settings = (await response.json()) as UserSettings;
-        logger.trace("Retrieved settings for user %s", user.email);
-        settingsCache.set(cookie, JSON.stringify(settings));
-        return settings;
-      } else {
-        logger.debug(
-          "Fractal server replied with %d while retrieving settings from cookie",
-          response.status
-        );
-        return undefined;
-      }
-    }
-  } finally {
-    loadingSettings = loadingSettings.filter((c) => c !== cookie);
   }
 }
 
@@ -219,7 +132,7 @@ export class TestingBasicAuthAuthorizer implements Authorizer {
     return !!authHeader;
   }
 
-  async isUserAuthorized(completePath: string, req: Request): Promise<boolean> {
+  async isUserAuthorized(_: string, req: Request): Promise<boolean> {
     const authHeader = req.get("Authorization")!;
     const [scheme, credentials] = authHeader.split(" ");
     if (scheme !== "Basic" || !credentials) {
@@ -228,12 +141,8 @@ export class TestingBasicAuthAuthorizer implements Authorizer {
     const [username, password] = Buffer.from(credentials, "base64")
       .toString()
       .split(":");
-    if (
-      username !== config.testingUsername ||
-      password !== config.testingPassword
-    ) {
-      return false;
-    }
-    return isSubfolder(config.zarrDataBasePath!, completePath);
+    return (
+      username === config.testingUsername && password === config.testingPassword
+    );
   }
 }

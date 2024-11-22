@@ -1,29 +1,28 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
-import { getMockedResponse, getMockedRequest, mockConfig } from "./mock";
+import {
+  getMockedResponse,
+  mockConfig,
+  getAnonymousMockedRequest,
+} from "./mock";
 import fs from "fs";
 import os from "os";
 import path from "path";
 
 vi.mock("../src/config.js", () => {
   return mockConfig({
-    authorizationScheme: "user-folders",
-    zarrDataBasePath: fs.mkdtempSync(
-      path.join(os.tmpdir(), "fractal-vizarr-app-test")
-    ),
+    authorizationScheme: "fractal-server",
   });
 });
 
 import { serveZarrData } from "../src/data";
 import { Authorizer } from "../src/authorizer";
-import { getConfig } from "../src/config";
 
 describe("Serving vizarr data", () => {
-  const config = getConfig();
-  const tmpDir = config.zarrDataBasePath!;
+  const tmpDir = path.join(os.tmpdir(), "fractal-vizarr-app-test");
 
   beforeAll(() => {
     // Create test files
-    fs.mkdirSync(path.join(tmpDir, "directory"));
+    fs.mkdirSync(path.join(tmpDir, "directory"), { recursive: true });
   });
 
   afterAll(() => {
@@ -31,7 +30,7 @@ describe("Serving vizarr data", () => {
   });
 
   it("Invalid path request", async () => {
-    const request = getMockedRequest(`${tmpDir}/../invalid/path`);
+    const request = getAnonymousMockedRequest(`${tmpDir}/../invalid/path`);
     const response = getMockedResponse();
     const authorizer = mockAuthorizer(true, true);
     await serveZarrData(authorizer, request, response);
@@ -39,7 +38,7 @@ describe("Serving vizarr data", () => {
   });
 
   it("Unauthorized request", async () => {
-    const request = getMockedRequest(`${tmpDir}/test1`);
+    const request = getAnonymousMockedRequest(`${tmpDir}/test1`);
     const response = getMockedResponse();
     const authorizer = mockAuthorizer(false, true);
     await serveZarrData(authorizer, request, response);
@@ -47,7 +46,7 @@ describe("Serving vizarr data", () => {
   });
 
   it("Forbidden request", async () => {
-    const request = getMockedRequest(`${tmpDir}/test1`);
+    const request = getAnonymousMockedRequest(`${tmpDir}/test1`);
     const response = getMockedResponse();
     const authorizer = mockAuthorizer(true, false);
     await serveZarrData(authorizer, request, response);
@@ -55,7 +54,7 @@ describe("Serving vizarr data", () => {
   });
 
   it("File not found", async () => {
-    const request = getMockedRequest(`${tmpDir}/test2`);
+    const request = getAnonymousMockedRequest(`${tmpDir}/test2`);
     const response = getMockedResponse();
     const authorizer = mockAuthorizer(true, true);
     await serveZarrData(authorizer, request, response);
@@ -63,7 +62,7 @@ describe("Serving vizarr data", () => {
   });
 
   it("File is directory", async () => {
-    const request = getMockedRequest(`${tmpDir}/directory`);
+    const request = getAnonymousMockedRequest(`${tmpDir}/directory`);
     const response = getMockedResponse();
     const authorizer = mockAuthorizer(true, true);
     await serveZarrData(authorizer, request, response);

@@ -7,7 +7,6 @@ export function mockConfig(config: Partial<Config>) {
     ({
       basePath: "/vizarr/",
       fractalServerUrl: "http://localhost:8000",
-      zarrDataBasePath: "/path/to/zarr/data",
       ...config,
     } as Config);
   return {
@@ -23,14 +22,31 @@ export function getMockedResponse() {
   } as unknown as Response;
 }
 
-export function getMockedRequest(
-  path: string,
-  cookie: string | undefined = undefined
-) {
+export function getAnonymousMockedRequest(path: string) {
   return {
     path,
-    get: () => {
-      return cookie;
+    get: () => {},
+  } as unknown as Request;
+}
+
+export function getMockedRequestWithToken(path: string, token: string) {
+  return {
+    path,
+    get: (key: string) => {
+      if (key === "Authorization") {
+        return `Bearer ${token}`;
+      }
+    },
+  } as unknown as Request;
+}
+
+export function getMockedRequestWithCookie(path: string, token: string) {
+  return {
+    path,
+    get: (key: string) => {
+      if (key === "Cookie") {
+        return `fastapiusersauth=${token}`;
+      }
     },
   } as unknown as Request;
 }

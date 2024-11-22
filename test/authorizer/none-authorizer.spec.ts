@@ -1,10 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import { getMockedRequest, mockConfig } from "../mock";
+import { getAnonymousMockedRequest, mockConfig } from "../mock";
 
 vi.mock("../../src/config.js", () => {
   return mockConfig({
     authorizationScheme: "none",
-    zarrDataBasePath: "/valid",
   });
 });
 
@@ -17,7 +16,7 @@ const authorizer = getAuthorizer();
 
 describe("None authorizer", () => {
   it("Valid path", async () => {
-    const request = getMockedRequest("/valid/path");
+    const request = getAnonymousMockedRequest("/valid/path");
     const validUser = await authorizer.isUserValid(request);
     const authorizedUser = await authorizer.isUserAuthorized(
       "/valid/path",
@@ -28,13 +27,13 @@ describe("None authorizer", () => {
   });
 
   it("Invalid path", async () => {
-    const request = getMockedRequest("/valid/path");
+    const request = getAnonymousMockedRequest("/valid/path");
     const validUser = await authorizer.isUserValid(request);
     const authorizedUser = await authorizer.isUserAuthorized(
       "/invalid/path",
       request
     );
     expect(validUser).toBeTruthy();
-    expect(authorizedUser).toBeFalsy();
+    expect(authorizedUser).toBeTruthy();
   });
 });
