@@ -203,6 +203,10 @@ The output is located in the `dist` folder.
 
 Then go back to fractal-vizarr-viewer folder and run `npm run start` to start the project. The server will start on port 3000.
 
+### Alive endpoint
+
+It is possible to use the `/alive` endpoint to check if the service is up and running and retrieve its version.
+
 ## Docker setup
 
 The following script can be used to build and start a docker image for testing:
