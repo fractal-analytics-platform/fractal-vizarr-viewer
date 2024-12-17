@@ -3,6 +3,7 @@ import { getLogger } from "./logger.js";
 import { getConfig } from "./config.js";
 import { serveZarrData } from "./data.js";
 import { getAuthorizer } from "./authorizer.js";
+import { aliveEndpoint } from "./alive.js";
 
 const config = getConfig();
 const logger = getLogger();
@@ -21,6 +22,11 @@ const authorizer = getAuthorizer();
 // Endpoint serving zarr files
 app.use(`${config.basePath}data`, async function (req, res) {
   await serveZarrData(authorizer, req, res);
+});
+
+// Alive endpoint
+app.use(`${config.basePath}alive`, async function (req, res) {
+  await aliveEndpoint(req, res);
 });
 
 // Serving Vizarr static files

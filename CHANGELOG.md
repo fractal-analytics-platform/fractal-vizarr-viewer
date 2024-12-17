@@ -1,5 +1,9 @@
 Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-viewer repository.
 
+# Unreleased
+
+* Added `/alive` endpoint (\#55);
+
 # 0.3.0
 
 * Retrieved complete list of allowed viewer paths directly from fractal-server: (\#53);
