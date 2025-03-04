@@ -192,7 +192,7 @@ In order to display a proper error message related to the missing authorization 
 ```bash
 git clone https://github.com/hms-dbmi/vizarr.git
 cd vizarr
-git checkout d70b0c9ab86acfcd79fd4bbb61f076bd122cb3cc
+git checkout manzt/labels
 pnpm install
 pnpm run build
 ```

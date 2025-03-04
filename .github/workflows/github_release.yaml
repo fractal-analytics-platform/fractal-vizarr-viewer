@@ -32,7 +32,7 @@ jobs:
       - name: Checkout vizarr commit
         run: |
           cd vizarr
-          git checkout d70b0c9ab86acfcd79fd4bbb61f076bd122cb3cc
+          git checkout manzt/labels
 
       - name: Install dependencies
         run: |

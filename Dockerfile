@@ -7,7 +7,7 @@ WORKDIR /
 RUN git clone https://github.com/hms-dbmi/vizarr.git
 WORKDIR /vizarr
 
-RUN git checkout d70b0c9ab86acfcd79fd4bbb61f076bd122cb3cc
+RUN git checkout manzt/labels
 RUN pnpm install
 RUN pnpm run build
 
