@@ -185,16 +185,14 @@ Copy the file `.env.example` to `.env` and customize values for the environment 
 
 In order to display a proper error message related to the missing authorization it is necessary to use a modified version of vizarr.
 
-> Vizarr needs to be built using **pnpm**. To install it you can use `npm install -g pnpm`.
-
 > Note: for simplicity, we assume that `fractal-vizarr-viewer` and `vizarr` are subfolders of the same folder:
 
 ```bash
 git clone https://github.com/hms-dbmi/vizarr.git
 cd vizarr
-git checkout d70b0c9ab86acfcd79fd4bbb61f076bd122cb3cc
-pnpm install
-pnpm run build
+git checkout eb2b77fed92a08c78c5770144bc7ccf19e9c7658
+npx pnpm install
+npx pnpm run build
 ```
 
 The output is located in the `dist` folder.

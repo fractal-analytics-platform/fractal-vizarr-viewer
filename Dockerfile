@@ -1,15 +1,13 @@
 FROM node:20
 
-RUN npm install -g pnpm 
-
 WORKDIR /
 
 RUN git clone https://github.com/hms-dbmi/vizarr.git
 WORKDIR /vizarr
 
-RUN git checkout d70b0c9ab86acfcd79fd4bbb61f076bd122cb3cc
-RUN pnpm install
-RUN pnpm run build
+RUN git checkout eb2b77fed92a08c78c5770144bc7ccf19e9c7658
+RUN npx -y pnpm install
+RUN npx pnpm run build
 
 RUN mkdir /fractal-vizarr-viewer
 

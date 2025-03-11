@@ -23,26 +23,23 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install pnpm
-        run: npm install -g pnpm
-
       - name: Clone vizarr
         run: git clone https://github.com/hms-dbmi/vizarr.git
 
       - name: Checkout vizarr commit
         run: |
           cd vizarr
-          git checkout d70b0c9ab86acfcd79fd4bbb61f076bd122cb3cc
+          git checkout eb2b77fed92a08c78c5770144bc7ccf19e9c7658
 
       - name: Install dependencies
         run: |
           cd vizarr
-          pnpm install
+          npx -y pnpm install
 
       - name: Generate build artifacts
         run: |
           cd vizarr
-          pnpm run build
+          npx pnpm run build
 
       - name: Generate the package
         run: |
