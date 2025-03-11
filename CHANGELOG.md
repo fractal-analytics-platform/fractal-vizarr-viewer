@@ -1,5 +1,10 @@
 Note: Numbers like (#123) point to closed Pull Requests on the fractal-vizarr-viewer repository.
 
+# 0.3.2
+
+* Updated vizarr git commit references to include labels feature;
+* Updated dependencies and CI configuration;
+
 # 0.3.1
 
 * Added `/alive` endpoint (\#55);
