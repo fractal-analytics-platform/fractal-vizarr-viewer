@@ -1,5 +1,9 @@
 Note: Numbers like (#123) point to closed Pull Requests on the `fractal-data` repository.
 
+# Unreleased
+
+- Drop Node 20 support (\#106).
+
 # 0.6.2
 
 - Drop references to custom vizarr builds (\#103).

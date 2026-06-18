@@ -63,7 +63,7 @@ Then you may e.g. copy the folder contents into `/var/www/html/vizarr` (for Apac
 Create a folder for the server files, navigate into it, and extract the fractal-data server files:
 
 ```
-FRACTAL_DATA_VERSION=0.1.3a0 && NODE_MAJOR_VERSION=20 && wget -qO- "https://github.com/fractal-analytics-platform/fractal-data/releases/download/v${FRACTAL_DATA_VERSION}/node-${NODE_MAJOR_VERSION}-fractal-data-v${FRACTAL_DATA_VERSION}.tar.gz " | tar -xz
+FRACTAL_DATA_VERSION=0.1.3a0 && NODE_MAJOR_VERSION=24 && wget -qO- "https://github.com/fractal-analytics-platform/fractal-data/releases/download/v${FRACTAL_DATA_VERSION}/node-${NODE_MAJOR_VERSION}-fractal-data-v${FRACTAL_DATA_VERSION}.tar.gz " | tar -xz
 ```
 
 **Note**: this will unpack in the current working directory the file `package.json` and the folders `dist` and `node_modules`.
