@@ -73,8 +73,12 @@ export function getMockedRequestWithRange(
   path: string,
   value: { start: number; end: number } | undefined,
 ) {
+  const rangeHeader = value
+    ? `bytes=${value.start}-${value.end}`
+    : undefined;
   return {
     path,
+    headers: rangeHeader ? { range: rangeHeader } : {},
     range: () => [value],
   } as unknown as Request;
 }

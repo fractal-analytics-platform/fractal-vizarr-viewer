@@ -18,6 +18,19 @@ class S3UnavailableError extends Error {
   }
 }
 
+type S3Error = {
+  name?: string;
+  message?: string;
+  $metadata?: {
+    httpStatusCode?: number;
+    requestId?: string;
+  };
+};
+
+function asS3Error(error: unknown): S3Error {
+  return typeof error === "object" && error !== null ? (error as S3Error) : {};
+}
+
 async function getS3Client(): Promise<any> {
   if (s3LoadAttempted) {
     if (!s3) throw new S3UnavailableError();
@@ -114,28 +127,50 @@ export async function serveZarrData(
       }
 
       try {
-        const s3Response = await s3Client.getObject({
-          Bucket: bucket,
-          Key: key,
-        });
-        const objectSize = Number(s3Response.ContentLength);
-        const ranges = req.range(objectSize);
-        const options = getRangeOptions(ranges, objectSize, res);
-        // For range requests, fetch only the requested range from S3
-        if (options && "start" in options && "end" in options) {
-          const rangeResponse = await s3Client.getObject({
+        // Only pay for a HEAD roundtrip when the client actually sent a
+        // Range header: we need the object size to validate the range and
+        // build the correct Content-Range response. For full-object
+        // requests, a single GetObject is enough (and its body is streamed
+        // straight through, so no socket is left holding an unread body).
+        const hasRangeHeader = Boolean(req.headers?.range);
+        if (hasRangeHeader) {
+          const headResponse = await s3Client.headObject({
             Bucket: bucket,
             Key: key,
-            Range: `bytes=${options.start}-${options.end}`,
           });
-          const rangeStream = rangeResponse.Body as NodeJS.ReadableStream;
-          rangeStream.pipe(res);
+          const objectSize = Number(headResponse.ContentLength);
+          const ranges = req.range(objectSize);
+          const options = getRangeOptions(ranges, objectSize, res);
+          if (options && "start" in options && "end" in options) {
+            const rangeResponse = await s3Client.getObject({
+              Bucket: bucket,
+              Key: key,
+              Range: `bytes=${options.start}-${options.end}`,
+            });
+            const rangeStream = rangeResponse.Body as NodeJS.ReadableStream;
+            rangeStream.pipe(res);
+          } else {
+            // Range was unsatisfiable: getRangeOptions already set 416.
+            // Fall back to streaming the whole object (existing behavior).
+            const s3Response = await s3Client.getObject({
+              Bucket: bucket,
+              Key: key,
+            });
+            const s3Stream = s3Response.Body as NodeJS.ReadableStream;
+            s3Stream.pipe(res);
+          }
         } else {
-          //if range is invalid, get the whole object and returns 416
+          const s3Response = await s3Client.getObject({
+            Bucket: bucket,
+            Key: key,
+          });
+          const objectSize = Number(s3Response.ContentLength);
+          getRangeOptions(undefined, objectSize, res);
           const s3Stream = s3Response.Body as NodeJS.ReadableStream;
           s3Stream.pipe(res);
         }
-      } catch (s3Error) {
+      } catch (error) {
+        const s3Error = asS3Error(error);
         if (
           s3Error.name === "NoSuchKey" ||
           s3Error.$metadata?.httpStatusCode === 404

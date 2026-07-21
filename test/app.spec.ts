@@ -187,13 +187,12 @@ describe("Serving data", () => {
     const { mockClient } = await import("aws-sdk-client-mock");
     const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
     const { Readable } = await import("stream");
-    const { sdkStreamMixin } = await import("@smithy/core/serde");
     const s3Mock = mockClient(S3Client);
     const stream = new Readable();
     stream.push("012345");
     stream.push(null);
     s3Mock.on(GetObjectCommand).resolves({
-      Body: sdkStreamMixin(stream),
+      Body: stream,
       ContentLength: 6,
     });
 
@@ -225,34 +224,22 @@ describe("Serving data", () => {
 
   it("Range request - s3", async () => {
     const { mockClient } = await import("aws-sdk-client-mock");
-    const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
+    const { S3Client, GetObjectCommand, HeadObjectCommand } = await import("@aws-sdk/client-s3");
     const { Readable } = await import("stream");
-    const { sdkStreamMixin } = await import("@smithy/core/serde");
     const s3Mock = mockClient(S3Client);
 
-    let callCount = 0;
+    s3Mock.on(HeadObjectCommand).resolves({
+      ContentLength: 6,
+    });
     s3Mock.on(GetObjectCommand).callsFake(() => {
-      callCount++;
-      if (callCount === 1) {
-        // First call - no range, return full content
-        const stream1 = new Readable();
-        stream1.push("012345");
-        stream1.push(null);
-        return {
-          Body: sdkStreamMixin(stream1),
-          ContentLength: 6,
-        };
-      } else {
-        // Second call - with range
-        const stream2 = new Readable();
-        stream2.push("123");
-        stream2.push(null);
-        return {
-          Body: sdkStreamMixin(stream2),
-          ContentRange: "bytes 1-3/6",
-          ContentLength: 3,
-        };
-      }
+      const stream = new Readable();
+      stream.push("123");
+      stream.push(null);
+      return {
+        Body: stream,
+        ContentRange: "bytes 1-3/6",
+        ContentLength: 3,
+      };
     });
 
     const request = getMockedRequestWithRange(`s3://bucket/key`, {
