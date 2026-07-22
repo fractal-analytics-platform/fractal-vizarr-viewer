@@ -12,6 +12,7 @@ import {
   mockConfig,
   getAnonymousMockedRequest,
   getMockedRequestWithRange,
+  getMockedRequestWithMethod,
 } from "./mock";
 import * as fs from "fs";
 import os from "os";
@@ -256,6 +257,41 @@ describe("Serving data", () => {
     );
     expect(response.setHeader).toHaveBeenCalledWith("Content-Length", 3);
     await vi.waitUntil(() => response.body === "123");
+  });
+
+  it("Method not allowed", async () => {
+    const request = getMockedRequestWithMethod(
+      `${tmpDir}/directory/foo`,
+      "PUT",
+    );
+    const response = getMockedResponse();
+    const authorizer = mockAuthorizer(true, true);
+    await serveZarrData(authorizer, request, response);
+    expect(response.status).toHaveBeenCalledWith(405);
+    expect(response.setHeader).toHaveBeenCalledWith("Allow", "GET, HEAD");
+  });
+
+  it("HEAD request - s3 uses HeadObject only, no GetObject", async () => {
+    const { mockClient } = await import("aws-sdk-client-mock");
+    const { S3Client, GetObjectCommand, HeadObjectCommand } = await import(
+      "@aws-sdk/client-s3"
+    );
+    const s3Mock = mockClient(S3Client);
+    s3Mock.on(HeadObjectCommand).resolves({ ContentLength: 6 });
+    s3Mock.on(GetObjectCommand).rejects(
+      new Error("GetObject must not be called for HEAD requests"),
+    );
+
+    const request = getMockedRequestWithMethod(`s3://bucket/key`, "HEAD");
+    const response = getMockedResponse();
+    const authorizer = mockAuthorizer(true, true);
+    await serveZarrData(authorizer, request, response);
+
+    expect(response.status).toHaveBeenCalledWith(200);
+    expect(response.setHeader).toHaveBeenCalledWith("Content-Length", 6);
+    expect(response.setHeader).toHaveBeenCalledWith("Accept-Ranges", "bytes");
+    expect(s3Mock.commandCalls(HeadObjectCommand)).toHaveLength(1);
+    expect(s3Mock.commandCalls(GetObjectCommand)).toHaveLength(0);
   });
 });
 

@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as fsp from "fs/promises";
+import { pipeline } from "stream/promises";
 import type { Request, Response } from "express";
 import type { Ranges, Result as RangeParserResult } from "range-parser";
 import { getValidPath } from "./path.js";
@@ -31,6 +32,36 @@ function asS3Error(error: unknown): S3Error {
   return typeof error === "object" && error !== null ? (error as S3Error) : {};
 }
 
+/**
+ * Pipe an S3 response body into an Express response using `stream/promises`
+ * `pipeline`, which guarantees the source (S3 socket) is destroyed if the
+ * destination (`res`) closes early — e.g. because the client aborted. Using
+ * bare `.pipe()` would leak sockets on client disconnects.
+ *
+ * Fire-and-forget: we intentionally do not await, so the request handler can
+ * return once headers are written. Errors are logged, not rethrown.
+ */
+function pipeS3BodyToResponse(
+  body: NodeJS.ReadableStream,
+  res: Response,
+  completePath: string,
+): void {
+  pipeline(body, res).catch((e) => {
+    // `pipeline` has already destroyed the source so the socket returns to
+    // the pool. All we do here is choose the right log level:
+    //   - ERR_STREAM_PREMATURE_CLOSE: client aborted (very common with vizarr
+    //     panning/zooming) — nothing to fix, keep quiet.
+    //   - anything else: real problem (S3 truncation, TLS reset, SDK read
+    //     error, etc.) — surface it.
+    const code = (e as NodeJS.ErrnoException)?.code;
+    if (code === "ERR_STREAM_PREMATURE_CLOSE") {
+      logger.debug("Client aborted download for %s", completePath);
+    } else {
+      logger.warn("S3 stream error for %s: %s", completePath, e);
+    }
+  });
+}
+
 async function getS3Client(): Promise<any> {
   if (s3LoadAttempted) {
     if (!s3) throw new S3UnavailableError();
@@ -41,7 +72,17 @@ async function getS3Client(): Promise<any> {
   try {
     const moduleName = "@aws-sdk/client-s3" as string;
     const mod: any = await import(moduleName);
-    s3 = new mod.S3();
+    // Hard deadlines so no S3 call can hang the request handler:
+    //   connectionTimeout — fail fast if S3 is unreachable
+    //   requestTimeout    — fail fast if a socket goes silent mid-body
+    // Both raise a `TimeoutError` (name === "TimeoutError") which the
+    // catch block below turns into a 504 Gateway Timeout response.
+    s3 = new mod.S3({
+      requestHandler: {
+        connectionTimeout: 5_000,
+        requestTimeout: 30_000,
+      },
+    });
     return s3;
   } catch {
     s3 = null;
@@ -55,6 +96,13 @@ export async function serveZarrData(
   res: Response,
 ) {
   try {
+    // Only GET and HEAD are supported. Anything else returns 405 immediately
+    // so the client never has to wait for a timeout on an unsupported method.
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      logger.info("Method not allowed: %s %s", req.method, req.path);
+      res.setHeader("Allow", "GET, HEAD");
+      return res.status(405).send("Method Not Allowed").end();
+    }
     const completePath = getValidPath(req);
     const is_s3 = completePath.startsWith("s3://");
     const validUser = await authorizer.isUserValid(req);
@@ -127,11 +175,24 @@ export async function serveZarrData(
       }
 
       try {
-        // Only pay for a HEAD roundtrip when the client actually sent a
-        // Range header: we need the object size to validate the range and
-        // build the correct Content-Range response. For full-object
-        // requests, a single GetObject is enough (and its body is streamed
-        // straight through, so no socket is left holding an unread body).
+        // HEAD: return headers only via a single S3 HeadObject.
+        if (req.method === "HEAD") {
+          const headResponse = await s3Client.headObject({
+            Bucket: bucket,
+            Key: key,
+          });
+          const objectSize = Number(headResponse.ContentLength);
+          res.setHeader("Content-Length", objectSize);
+          res.setHeader("Accept-Ranges", "bytes");
+          return res.status(200).end();
+        }
+
+        // GET with a Range header: we need the object size to validate the
+        // range and build the correct Content-Range response, so pay for an
+        // extra S3 HeadObject roundtrip first. Without a Range header, a
+        // single GetObject is enough (its ContentLength arrives with the
+        // response headers, and the body is streamed straight through so no
+        // socket is left holding an unread body).
         const hasRangeHeader = Boolean(req.headers?.range);
         if (hasRangeHeader) {
           const headResponse = await s3Client.headObject({
@@ -147,8 +208,11 @@ export async function serveZarrData(
               Key: key,
               Range: `bytes=${options.start}-${options.end}`,
             });
-            const rangeStream = rangeResponse.Body as NodeJS.ReadableStream;
-            rangeStream.pipe(res);
+            pipeS3BodyToResponse(
+              rangeResponse.Body as NodeJS.ReadableStream,
+              res,
+              completePath,
+            );
           } else {
             // Range was unsatisfiable: getRangeOptions already set 416.
             // Fall back to streaming the whole object (existing behavior).
@@ -156,8 +220,11 @@ export async function serveZarrData(
               Bucket: bucket,
               Key: key,
             });
-            const s3Stream = s3Response.Body as NodeJS.ReadableStream;
-            s3Stream.pipe(res);
+            pipeS3BodyToResponse(
+              s3Response.Body as NodeJS.ReadableStream,
+              res,
+              completePath,
+            );
           }
         } else {
           const s3Response = await s3Client.getObject({
@@ -166,8 +233,12 @@ export async function serveZarrData(
           });
           const objectSize = Number(s3Response.ContentLength);
           getRangeOptions(undefined, objectSize, res);
-          const s3Stream = s3Response.Body as NodeJS.ReadableStream;
-          s3Stream.pipe(res);
+          res.setHeader("Accept-Ranges", "bytes");
+          pipeS3BodyToResponse(
+            s3Response.Body as NodeJS.ReadableStream,
+            res,
+            completePath,
+          );
         }
       } catch (error) {
         const s3Error = asS3Error(error);
@@ -198,6 +269,18 @@ export async function serveZarrData(
             s3Error.$metadata?.requestId,
           );
           return res.status(401).send("Unauthorized - Expired token").end();
+        }
+        if (
+          s3Error.name === "TimeoutError" ||
+          s3Error.name === "RequestTimeout"
+        ) {
+          logger.error(
+            "S3 request timed out for %s (name=%s): %s",
+            completePath,
+            s3Error.name,
+            s3Error.message,
+          );
+          return res.status(504).send("Gateway Timeout").end();
         } else {
           logger.error(
             "Unexpected S3 error for %s (name=%s, statusCode=%s, requestId=%s): %s",

@@ -39,14 +39,16 @@ export function getMockedResponse() {
 
 export function getAnonymousMockedRequest(path: string) {
   return {
+    method: "GET",
     path,
-    get: () => {},
+    get: () => { },
     range: () => undefined,
   } as unknown as Request;
 }
 
 export function getMockedRequestWithToken(path: string, token: string) {
   return {
+    method: "GET",
     path,
     get: (key: string) => {
       if (key === "Authorization") {
@@ -59,6 +61,7 @@ export function getMockedRequestWithToken(path: string, token: string) {
 
 export function getMockedRequestWithCookie(path: string, token: string) {
   return {
+    method: "GET",
     path,
     get: (key: string) => {
       if (key === "Cookie") {
@@ -77,8 +80,19 @@ export function getMockedRequestWithRange(
     ? `bytes=${value.start}-${value.end}`
     : undefined;
   return {
+    method: "GET",
     path,
     headers: rangeHeader ? { range: rangeHeader } : {},
     range: () => [value],
+  } as unknown as Request;
+}
+
+export function getMockedRequestWithMethod(path: string, method: string) {
+  return {
+    method,
+    path,
+    get: () => { },
+    headers: {},
+    range: () => undefined,
   } as unknown as Request;
 }
