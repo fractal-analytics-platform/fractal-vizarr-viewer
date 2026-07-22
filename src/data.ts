@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as fsp from "fs/promises";
+import * as https from "https";
 import { pipeline } from "stream/promises";
 import type { Request, Response } from "express";
 import type { Ranges, Result as RangeParserResult } from "range-parser";
@@ -72,16 +73,28 @@ async function getS3Client(): Promise<any> {
   try {
     const moduleName = "@aws-sdk/client-s3" as string;
     const mod: any = await import(moduleName);
+    const { NodeHttpHandler } = (await import(
+      "@smithy/node-http-handler"
+    )) as any;
     // Hard deadlines so no S3 call can hang the request handler:
     //   connectionTimeout — fail fast if S3 is unreachable
     //   requestTimeout    — fail fast if a socket goes silent mid-body
     // Both raise a `TimeoutError` (name === "TimeoutError") which the
     // catch block below turns into a 504 Gateway Timeout response.
+    //
+    // keepAlive: false — every S3 request opens a fresh TCP+TLS
+    // connection. Slightly slower per request, but avoids the "dead
+    // keep-alive socket" trap where NAT/conntrack (K8s CNI, AWS NAT
+    // Gateway) silently drops idle connections after ~5 min. With
+    // keep-alive on, the Node HTTPS agent would keep reusing dead
+    // sockets and every subsequent request would time out on connect
+    // until the process is restarted.
     s3 = new mod.S3({
-      requestHandler: {
+      requestHandler: new NodeHttpHandler({
         connectionTimeout: 5_000,
-        requestTimeout: 30_000,
-      },
+        requestTimeout: 10_000,
+        httpsAgent: new https.Agent({ keepAlive: false }),
+      }),
     });
     return s3;
   } catch {
