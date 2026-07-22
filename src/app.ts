@@ -4,9 +4,12 @@ import { getConfig } from "./config.js";
 import { serveZarrData } from "./data.js";
 import { getAuthorizer } from "./authorizer.js";
 import { aliveEndpoint } from "./alive.js";
+import { getVersion } from "./version.js";
+
+const logger = getLogger();
+logger.info("fractal-data version %s", getVersion());
 
 const config = getConfig();
-const logger = getLogger();
 
 // Defining Express application
 const app = express();
