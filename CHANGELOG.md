@@ -3,6 +3,7 @@ Note: Numbers like (#123) point to closed Pull Requests on the `fractal-data` re
 # Unreleased
 
 - Drop Node 20 support (\#106).
+- Log version upon startup (\#113).
 
 # 0.6.2
 
