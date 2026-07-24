@@ -79,7 +79,11 @@ export async function serveZarrData(
       const stream = fs.createReadStream(completePath, options);
       stream.on("error", (e) => {
         logger.error("Error reading file: %s, %s", completePath, e);
-        res.status(500).send("Internal Server Error").end();
+        if (!res.headersSent) {
+          res.status(500).end("Internal Server Error");
+        } else {
+          res.destroy(e);
+        }
       });
       stream.pipe(res);
     } else {
