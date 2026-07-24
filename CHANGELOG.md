@@ -4,6 +4,7 @@ Note: Numbers like (#123) point to closed Pull Requests on the `fractal-data` re
 
 - Drop Node 20 support (\#106).
 - Log version upon startup (\#113).
+- Fix `ERR_HTTP_HEADERS_SENT` in stream handling (\#115).
 
 # 0.6.2
 
